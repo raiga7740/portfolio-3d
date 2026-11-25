@@ -1,50 +1,63 @@
 "use client";
 
 import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { ContactShadows, Environment } from "@react-three/drei";
-import HeroSculpture from "./HeroSculpture";
+import * as THREE from "three";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Environment } from "@react-three/drei";
+import IsometricStage from "./IsometricStage";
+
+function SceneLighting() {
+  const isMobile = useThree((state) => state.viewport.width < 6);
+  const shadowMapSize = isMobile ? 1024 : 2048;
+
+  return (
+    <>
+      <ambientLight intensity={0.45} color="#ffffff" />
+      <hemisphereLight args={["#ffffff", "#cbd5e1", 0.55]} />
+      <directionalLight
+        key={isMobile ? "sun-mobile" : "sun-desktop"}
+        position={[11, 12, -4]}
+        intensity={1.8}
+        color="#fff8f0"
+        castShadow
+        shadow-mapSize={[shadowMapSize, shadowMapSize]}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.02}
+        shadow-radius={4}
+        shadow-camera-left={-12}
+        shadow-camera-right={12}
+        shadow-camera-top={12}
+        shadow-camera-bottom={-12}
+        shadow-camera-near={1}
+        shadow-camera-far={40}
+      />
+    </>
+  );
+}
 
 export default function SceneCanvas() {
   return (
     <Canvas
+      shadows="soft"
       dpr={[1, 2]}
-      camera={{ position: [0, 0, 6.2], fov: 42 }}
+      camera={{ position: [6.15, 10.15, 11.45], fov: 30, near: 0.1, far: 100 }}
       gl={{
-        alpha: true,
         antialias: true,
         powerPreference: "high-performance",
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.1,
       }}
-      style={{ background: "transparent" }}
+      className="pointer-events-none"
     >
-      {/* Bright studio lighting tailored for Clean Light Mode (#F8FAFC) */}
-      <ambientLight intensity={0.75} />
-      <directionalLight position={[6, 8, 6]} intensity={1.35} color="#ffffff" />
-      <directionalLight
-        position={[-6, -4, 4]}
-        intensity={0.55}
-        color="#e2e8f0"
-      />
-      <directionalLight
-        position={[-3, 4, -5]}
-        intensity={0.4}
-        color="#14B8A6"
-      />
+      <color attach="background" args={["#F8FAFC"]} />
+      <fog attach="fog" args={["#F8FAFC", 15, 34]} />
+
+      <SceneLighting />
 
       <Suspense fallback={null}>
-        <Environment preset="studio" />
-        <HeroSculpture />
+        <Environment preset="studio" environmentIntensity={0.45} />
+        <IsometricStage />
       </Suspense>
-
-      <ContactShadows
-        position={[0, -2.35, 0]}
-        opacity={0.2}
-        scale={12}
-        blur={2.8}
-        far={5}
-        color="#64748b"
-      />
     </Canvas>
   );
 }
-

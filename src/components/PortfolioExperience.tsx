@@ -4,7 +4,11 @@ import { useCallback, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import { INITIAL_SCROLL_STATE, scrollState } from "@/lib/scrollState";
+import {
+  INITIAL_SCROLL_STATE,
+  resetScrollState,
+  scrollState,
+} from "@/lib/scrollState";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import ProjectsSection from "@/components/sections/ProjectsSection";
@@ -19,7 +23,7 @@ export default function PortfolioExperience() {
 
   useEffect(() => {
     // Reset scroll choreography to hero defaults on mount
-    Object.assign(scrollState, INITIAL_SCROLL_STATE);
+    resetScrollState();
 
     const lenis = new Lenis({
       duration: 1.15,
@@ -38,74 +42,164 @@ export default function PortfolioExperience() {
     gsap.ticker.lagSmoothing(0);
 
     const ctx = gsap.context(() => {
-      // Choreography 1: Hero (right) -> Selected Projects (left)
-      gsap.fromTo(
-        scrollState,
-        {
-          xFactor: INITIAL_SCROLL_STATE.xFactor,
-          yFactor: INITIAL_SCROLL_STATE.yFactor,
-          zOffset: INITIAL_SCROLL_STATE.zOffset,
-          rotX: INITIAL_SCROLL_STATE.rotX,
-          rotY: INITIAL_SCROLL_STATE.rotY,
-          rotZ: INITIAL_SCROLL_STATE.rotZ,
-          scaleFactor: INITIAL_SCROLL_STATE.scaleFactor,
+      // Phase 0 -> Phase 1: Hero -> Selected Projects (pan left behind cards + tiered steps)
+      const projectsTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#projects",
+          start: "top bottom",
+          end: "top 25%",
+          scrub: 1.2,
         },
-        {
-          xFactor: -0.24,
-          yFactor: -0.02,
-          zOffset: -0.2,
-          rotX: 0.34,
-          rotY: 2.35,
-          rotZ: -0.1,
-          scaleFactor: 0.92,
-          ease: "none",
-          immediateRender: false,
-          scrollTrigger: {
-            trigger: "#projects",
-            start: "top bottom",
-            end: "top 25%",
-            scrub: 1,
+      });
+      projectsTl
+        .fromTo(
+          scrollState,
+          {
+            sectionIndex: INITIAL_SCROLL_STATE.sectionIndex,
+            stageRotY: INITIAL_SCROLL_STATE.stageRotY,
+            blockSpread: INITIAL_SCROLL_STATE.blockSpread,
+            blockElevation: INITIAL_SCROLL_STATE.blockElevation,
+            trackSpeed: INITIAL_SCROLL_STATE.trackSpeed,
+            orbLift: INITIAL_SCROLL_STATE.orbLift,
+            glowIntensity: INITIAL_SCROLL_STATE.glowIntensity,
           },
-        }
-      );
+          {
+            sectionIndex: 1,
+            stageRotY: 0.22,
+            blockSpread: 0.15,
+            blockElevation: 1,
+            trackSpeed: 1.6,
+            orbLift: 0,
+            glowIntensity: 1.4,
+            ease: "none",
+            immediateRender: false,
+          },
+          0
+        )
+        .fromTo(
+          scrollState.cameraPos,
+          { ...INITIAL_SCROLL_STATE.cameraPos },
+          { x: 11.4, y: 7.9, z: 7.4, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.cameraLookAt,
+          { ...INITIAL_SCROLL_STATE.cameraLookAt },
+          { x: 2.05, y: 0.35, z: -1.65, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.stageOffset,
+          { ...INITIAL_SCROLL_STATE.stageOffset },
+          { x: -0.25, y: 0, z: 0.2, ease: "none", immediateRender: false },
+          0
+        );
 
-      // Choreography 2: Selected Projects (left) -> About & Tech Stack (right)
-      gsap.to(scrollState, {
-        xFactor: 0.24,
-        yFactor: 0.02,
-        zOffset: 0.1,
-        rotX: -0.18,
-        rotY: 4.85,
-        rotZ: 0.14,
-        scaleFactor: 1.04,
-        ease: "none",
-        immediateRender: false,
+      // Phase 1 -> Phase 2: Projects -> About (orbit ~45deg right, exploded blocks, hovering disc)
+      const aboutTl = gsap.timeline({
         scrollTrigger: {
           trigger: "#about",
           start: "top bottom",
           end: "center center",
-          scrub: 1,
+          scrub: 1.2,
         },
       });
+      aboutTl
+        .fromTo(
+          scrollState,
+          {
+            sectionIndex: 1,
+            stageRotY: 0.22,
+            blockSpread: 0.15,
+            blockElevation: 1,
+            trackSpeed: 1.6,
+            orbLift: 0,
+            glowIntensity: 1.4,
+          },
+          {
+            sectionIndex: 2,
+            stageRotY: -0.35,
+            blockSpread: 1,
+            blockElevation: 0.55,
+            trackSpeed: 1.0,
+            orbLift: 1,
+            glowIntensity: 1.25,
+            ease: "none",
+            immediateRender: false,
+          },
+          0
+        )
+        .fromTo(
+          scrollState.cameraPos,
+          { x: 11.4, y: 7.9, z: 7.4 },
+          { x: 8.85, y: 7.35, z: 3.15, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.cameraLookAt,
+          { x: 2.05, y: 0.35, z: -1.65 },
+          { x: -0.35, y: 0.95, z: 2.15, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.stageOffset,
+          { x: -0.25, y: 0, z: 0.2 },
+          { x: 0.15, y: 0, z: -0.15, ease: "none", immediateRender: false },
+          0
+        );
 
-      // Choreography 3: About (right) -> Contact & Footer (subtle upper-center)
-      gsap.to(scrollState, {
-        xFactor: 0,
-        yFactor: 0.17,
-        zOffset: -0.7,
-        rotX: 0.15,
-        rotY: 7.2,
-        rotZ: 0,
-        scaleFactor: 0.78,
-        ease: "none",
-        immediateRender: false,
+      // Phase 2 -> Phase 3: About -> Contact (bird's-eye pull back + calm return to rest)
+      const contactTl = gsap.timeline({
         scrollTrigger: {
           trigger: "#contact",
           start: "top bottom",
           end: "center center",
-          scrub: 1,
+          scrub: 1.2,
         },
       });
+      contactTl
+        .fromTo(
+          scrollState,
+          {
+            sectionIndex: 2,
+            stageRotY: -0.35,
+            blockSpread: 1,
+            blockElevation: 0.55,
+            trackSpeed: 1.0,
+            orbLift: 1,
+            glowIntensity: 1.25,
+          },
+          {
+            sectionIndex: 3,
+            stageRotY: 0,
+            blockSpread: 0,
+            blockElevation: 0,
+            trackSpeed: 0.5,
+            orbLift: 0,
+            glowIntensity: 0.6,
+            ease: "none",
+            immediateRender: false,
+          },
+          0
+        )
+        .fromTo(
+          scrollState.cameraPos,
+          { x: 8.85, y: 7.35, z: 3.15 },
+          { x: 7.5, y: 15.8, z: 10.5, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.cameraLookAt,
+          { x: -0.35, y: 0.95, z: 2.15 },
+          { x: 0, y: 0.35, z: 0, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.stageOffset,
+          { x: 0.15, y: 0, z: -0.15 },
+          { x: 0, y: 0, z: 0, ease: "none", immediateRender: false },
+          0
+        );
 
       // Subtle card & section reveal animations without hiding content permanently
       const revealEls = gsap.utils.toArray<HTMLElement>("[data-reveal]");
