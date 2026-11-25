@@ -1,0 +1,23 @@
+{
+  "projectId": "10229770850451950187",
+  "title": "Raiga 3D Portfolio - Clean Light Mode",
+  "designSystem": {
+    "name": "assets/ffb6704b9f4142709e19ae230b4d6d3d",
+    "displayName": "Raiga Portfolio Minimal",
+    "fonts": {
+      "headline": "Syne",
+      "body": "Plus Jakarta Sans",
+      "mono": "JetBrains Mono"
+    }
+  },
+  "screens": [
+    {
+      "id": "6f0abe2bc92147f296728685011c9e64",
+      "title": "Raiga - Full-Stack Web Developer Portfolio",
+      "deviceType": "DESKTOP",
+      "htmlFile": ".stitch/designs/raiga-portfolio.html",
+      "screenshotFile": ".stitch/designs/raiga-portfolio.png"
+    }
+  ]
+}
+
