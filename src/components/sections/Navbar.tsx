@@ -5,6 +5,7 @@ import { Menu, Moon, Sun, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
 import { PORTFOLIO_DATA, type Language } from "@/data/portfolio";
+import RaigaLogo from "@/components/RaigaLogo";
 
 interface NavbarProps {
   onNavigate?: (href: string) => void;
@@ -69,11 +70,11 @@ export default function Navbar({ onNavigate }: NavbarProps) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-10 lg:px-16">
           <a
             href="#hero"
+            aria-label={PORTFOLIO_DATA.brand}
             onClick={(e) => handleAnchorClick(e, "#hero")}
-            className="group inline-flex shrink-0 items-center gap-2 font-display text-lg font-bold tracking-tight text-[#0F172A] transition-colors duration-500 hover:opacity-80 dark:text-[#F8FAFC]"
+            className="group inline-flex shrink-0 items-center text-[#0F172A] transition-colors duration-500 hover:opacity-80 dark:text-[#F8FAFC]"
           >
-            <span>{PORTFOLIO_DATA.brand}</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-teal-600 transition-transform duration-300 group-hover:scale-125 dark:bg-teal-400" />
+            <RaigaLogo size={28} />
           </a>
 
           <div className="flex items-center gap-2 sm:gap-3.5">

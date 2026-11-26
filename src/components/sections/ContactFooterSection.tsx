@@ -3,6 +3,7 @@
 import { ArrowUpRight, Mail } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
+import RaigaLogo from "@/components/RaigaLogo";
 
 export default function ContactFooterSection() {
   const { lang } = useLanguage();
@@ -57,6 +58,12 @@ export default function ContactFooterSection() {
 
         {/* Minimal Footer */}
         <footer className="mt-16 text-center pointer-events-auto">
+          <div className="mb-3 flex justify-center">
+            <RaigaLogo
+              size={22}
+              className="text-[#0F172A] transition-colors duration-500 dark:text-[#F8FAFC]"
+            />
+          </div>
           <p className="font-mono text-xs tracking-wide text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
             {PORTFOLIO_DATA.footer[lang]}
           </p>
