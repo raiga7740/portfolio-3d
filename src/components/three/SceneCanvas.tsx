@@ -131,7 +131,7 @@ export default function SceneCanvas() {
     <Canvas
       shadows="soft"
       dpr={isMobile ? [1, 1] : [1, 1.5]}
-      camera={{ position: [6.15, 10.15, 11.45], fov: 30, near: 0.1, far: 100 }}
+      camera={{ position: [6.15, 10.15, 11.45], fov: 30, near: 0.5, far: 100 }}
       gl={{
         antialias: true,
         powerPreference: "high-performance",
@@ -180,6 +180,24 @@ export default function SceneCanvas() {
             position={[8, 1.2, 6]}
             rotation={[0, -Math.PI / 3, 0]}
             scale={[8, 1.2, 1]}
+          />
+          {/* Crisp back-right specular rim strip for rounded edge highlights */}
+          <Lightformer
+            form="rect"
+            intensity={2.2}
+            color="#ffffff"
+            position={[6, 7, -8]}
+            rotation={[0, -Math.PI * 0.75, 0]}
+            scale={[10, 1.4, 1]}
+          />
+          {/* Warm-gold front-left accent rim for metallic disc reflections */}
+          <Lightformer
+            form="rect"
+            intensity={1.3}
+            color="#fef3c7"
+            position={[-7, 3.5, 9]}
+            rotation={[0, Math.PI * 0.25, 0]}
+            scale={[6, 1.0, 1]}
           />
         </Environment>
 
