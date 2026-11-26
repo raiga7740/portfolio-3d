@@ -27,6 +27,8 @@ export const DEFAULT_ACCENT_COLOR = "#14B8A6";
 export const PROJECT_ACCENT_COLORS: Record<string, string> = {
   labaku: "#10B981",
   jplearn: "#6366F1",
+  "saung-sunda": "#F59E0B",
+  slekbew: "#0EA5E9",
   "discord-community-hub": "#5865F2",
 };
 
