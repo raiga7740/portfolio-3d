@@ -12,6 +12,7 @@ import {
 
 const DISC_RADIUS = 0.26;
 const HERO_STAGE_OFFSET_X = 1.65;
+const PYLON_COUNT = 12;
 
 const LIGHT_ACCENT_COLOR = "#0D9488";
 const DARK_ACCENT_COLOR = "#2DD4BF";
@@ -24,10 +25,14 @@ const LIGHT_GRID_SECTION = new THREE.Color("#94a3b8");
 const DARK_GRID_SECTION = new THREE.Color("#334155");
 const LIGHT_BLOCK_COLOR = new THREE.Color("#FFFFFF");
 const DARK_BLOCK_COLOR = new THREE.Color("#1E293B");
+const LIGHT_TRIM_COLOR = new THREE.Color("#CBD5E1");
+const DARK_TRIM_COLOR = new THREE.Color("#334155");
 const LIGHT_TRACK_COLOR = new THREE.Color("#94A3B8");
 const DARK_TRACK_COLOR = new THREE.Color("#64748B");
 const LIGHT_COIN_COLOR = new THREE.Color("#D9A84E");
 const DARK_COIN_COLOR = new THREE.Color("#F5D07A");
+const LIGHT_COIN_INLAY = new THREE.Color("#B88934");
+const DARK_COIN_INLAY = new THREE.Color("#D4AA52");
 const LIGHT_COIN_EMISSIVE = new THREE.Color("#5c4314");
 const DARK_COIN_EMISSIVE = new THREE.Color("#8a6418");
 
@@ -259,8 +264,16 @@ export default function IsometricStage() {
   const blockMat2Ref = useRef<THREE.MeshPhysicalMaterial>(null);
   const blockMat3Ref = useRef<THREE.MeshPhysicalMaterial>(null);
   const blockMat4Ref = useRef<THREE.MeshPhysicalMaterial>(null);
+  const trimMat1Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const trimMat2Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const trimMat3Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const trimMat4Ref = useRef<THREE.MeshStandardMaterial>(null);
   const trackMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const pylonsRef = useRef<THREE.InstancedMesh>(null);
+  const pylonMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const discMatRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const discRimMatRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const discInlayMatRef = useRef<THREE.MeshStandardMaterial>(null);
 
   const floorGlow1Ref = useRef<THREE.Mesh>(null);
   const floorGlow2Ref = useRef<THREE.Mesh>(null);
@@ -406,6 +419,24 @@ export default function IsometricStage() {
       tubeGeometry.dispose();
     };
   }, [tubeGeometry]);
+
+  useEffect(() => {
+    const mesh = pylonsRef.current;
+    if (!mesh) return;
+    const dummy = new THREE.Object3D();
+    const point = new THREE.Vector3();
+    const tangent = new THREE.Vector3();
+    for (let i = 0; i < PYLON_COUNT; i += 1) {
+      const t = i / PYLON_COUNT;
+      curve.getPointAt(t, point);
+      curve.getTangentAt(t, tangent);
+      dummy.position.set(point.x, 0.032, point.z);
+      dummy.rotation.set(0, Math.atan2(tangent.x, tangent.z), 0);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [curve]);
 
   const syncCursor = useCallback(() => {
     if (isDraggingStageRef.current) {
@@ -731,23 +762,45 @@ export default function IsometricStage() {
       );
       mat.clearcoat = THREE.MathUtils.lerp(
         mat.clearcoat,
-        isDark ? 0.15 : 0.22,
+        isDark ? 0.28 : 0.36,
         themeDamp
       );
     }
 
-    if (trackMatRef.current) {
-      trackMatRef.current.color.lerp(
-        isDark ? DARK_TRACK_COLOR : LIGHT_TRACK_COLOR,
+    const trimMats = [
+      trimMat1Ref.current,
+      trimMat2Ref.current,
+      trimMat3Ref.current,
+      trimMat4Ref.current,
+    ];
+    for (let i = 0; i < trimMats.length; i += 1) {
+      const mat = trimMats[i];
+      if (!mat) continue;
+      mat.color.lerp(isDark ? DARK_TRIM_COLOR : LIGHT_TRIM_COLOR, themeDamp);
+      mat.metalness = THREE.MathUtils.lerp(
+        mat.metalness,
+        isDark ? 0.65 : 0.45,
         themeDamp
       );
-      trackMatRef.current.metalness = THREE.MathUtils.lerp(
-        trackMatRef.current.metalness,
+      mat.roughness = THREE.MathUtils.lerp(
+        mat.roughness,
+        isDark ? 0.28 : 0.34,
+        themeDamp
+      );
+    }
+
+    const railMats = [trackMatRef.current, pylonMatRef.current];
+    for (let i = 0; i < railMats.length; i += 1) {
+      const mat = railMats[i];
+      if (!mat) continue;
+      mat.color.lerp(isDark ? DARK_TRACK_COLOR : LIGHT_TRACK_COLOR, themeDamp);
+      mat.metalness = THREE.MathUtils.lerp(
+        mat.metalness,
         isDark ? 0.7 : 0.55,
         themeDamp
       );
-      trackMatRef.current.roughness = THREE.MathUtils.lerp(
-        trackMatRef.current.roughness,
+      mat.roughness = THREE.MathUtils.lerp(
+        mat.roughness,
         isDark ? 0.25 : 0.32,
         themeDamp
       );
@@ -768,6 +821,10 @@ export default function IsometricStage() {
     const coinBoost = coinBoostRef.current;
     const jumpArc = Math.sin(coinJumpRef.current * Math.PI);
 
+    const targetCoinEmissive =
+      (isDark ? 0.15 : 0.06) + coinHoverBlend * 0.35 + coinBoost * 0.45;
+    const coinEmissiveDamp = 1 - Math.exp(-8 * safeDelta);
+
     if (discMatRef.current) {
       discMatRef.current.color.lerp(
         isDark ? DARK_COIN_COLOR : LIGHT_COIN_COLOR,
@@ -787,12 +844,42 @@ export default function IsometricStage() {
         isDark ? DARK_COIN_EMISSIVE : LIGHT_COIN_EMISSIVE,
         themeDamp
       );
-      const targetCoinEmissive =
-        (isDark ? 0.15 : 0.06) + coinHoverBlend * 0.35 + coinBoost * 0.45;
       discMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
         discMatRef.current.emissiveIntensity,
         targetCoinEmissive,
-        1 - Math.exp(-8 * safeDelta)
+        coinEmissiveDamp
+      );
+    }
+
+    if (discRimMatRef.current) {
+      discRimMatRef.current.color.lerp(
+        isDark ? DARK_COIN_COLOR : LIGHT_COIN_COLOR,
+        themeDamp
+      );
+      discRimMatRef.current.emissive.lerp(
+        isDark ? DARK_COIN_EMISSIVE : LIGHT_COIN_EMISSIVE,
+        themeDamp
+      );
+      discRimMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
+        discRimMatRef.current.emissiveIntensity,
+        targetCoinEmissive * 1.1,
+        coinEmissiveDamp
+      );
+    }
+
+    if (discInlayMatRef.current) {
+      discInlayMatRef.current.color.lerp(
+        isDark ? DARK_COIN_INLAY : LIGHT_COIN_INLAY,
+        themeDamp
+      );
+      discInlayMatRef.current.emissive.lerp(
+        isDark ? DARK_COIN_EMISSIVE : LIGHT_COIN_EMISSIVE,
+        themeDamp
+      );
+      discInlayMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
+        discInlayMatRef.current.emissiveIntensity,
+        targetCoinEmissive * 0.7,
+        coinEmissiveDamp
       );
     }
 
@@ -945,21 +1032,21 @@ export default function IsometricStage() {
     if (floorGlow1Ref.current && block1Ref.current) {
       floorGlow1Ref.current.position.set(
         block1Ref.current.position.x,
-        0.015,
+        0.034,
         block1Ref.current.position.z
       );
     }
     if (floorGlow2Ref.current && block2Ref.current) {
       floorGlow2Ref.current.position.set(
         block2Ref.current.position.x,
-        0.015,
+        0.034,
         block2Ref.current.position.z
       );
     }
     if (floorGlow4Ref.current && block4Ref.current) {
       floorGlow4Ref.current.position.set(
         block4Ref.current.position.x,
-        0.015,
+        0.034,
         block4Ref.current.position.z
       );
     }
@@ -1156,7 +1243,7 @@ export default function IsometricStage() {
       {/* Architectural Tile Grid */}
       <Grid
         ref={gridMeshRef}
-        position={[0, 0.004, 0]}
+        position={[0, 0.012, 0]}
         args={[40, 40]}
         cellSize={1}
         cellThickness={0.6}
@@ -1174,7 +1261,8 @@ export default function IsometricStage() {
         <mesh
           ref={cursorAuraRef}
           rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0.02, 0]}
+          position={[0, 0.046, 0]}
+          renderOrder={2}
         >
           <planeGeometry args={[3.4, 3.4]} />
           <meshBasicMaterial
@@ -1184,6 +1272,8 @@ export default function IsometricStage() {
             transparent
             opacity={0}
             depthWrite={false}
+            polygonOffset
+            polygonOffsetFactor={-2}
           />
         </mesh>
       )}
@@ -1200,7 +1290,7 @@ export default function IsometricStage() {
       <group ref={stageGroupRef}>
         {/* Baked Soft Contact Shadows replacing heavy real-time N8AO */}
         <ContactShadows
-          position={[0, 0.01, 0]}
+          position={[0, 0.022, 0]}
           opacity={0.22}
           scale={14}
           blur={2.2}
@@ -1216,7 +1306,8 @@ export default function IsometricStage() {
             <mesh
               ref={floorGlow1Ref}
               rotation={[-Math.PI / 2, 0, 0]}
-              position={[1.05, 0.015, -1.05]}
+              position={[1.05, 0.034, -1.05]}
+              renderOrder={1}
             >
               <planeGeometry args={[2.9, 2.2]} />
               <meshBasicMaterial
@@ -1226,13 +1317,16 @@ export default function IsometricStage() {
                 transparent
                 opacity={0.42}
                 depthWrite={false}
+                polygonOffset
+                polygonOffsetFactor={-1}
               />
             </mesh>
 
             <mesh
               ref={floorGlow2Ref}
               rotation={[-Math.PI / 2, 0, 0]}
-              position={[-1.25, 0.015, 1.05]}
+              position={[-1.25, 0.034, 1.05]}
+              renderOrder={1}
             >
               <planeGeometry args={[2.1, 2.1]} />
               <meshBasicMaterial
@@ -1242,13 +1336,16 @@ export default function IsometricStage() {
                 transparent
                 opacity={0.42}
                 depthWrite={false}
+                polygonOffset
+                polygonOffsetFactor={-1}
               />
             </mesh>
 
             <mesh
               ref={floorGlow4Ref}
               rotation={[-Math.PI / 2, 0, 0]}
-              position={[-1.45, 0.015, -1.25]}
+              position={[-1.45, 0.034, -1.25]}
+              renderOrder={1}
             >
               <planeGeometry args={[1.9, 2.15]} />
               <meshBasicMaterial
@@ -1258,6 +1355,8 @@ export default function IsometricStage() {
                 transparent
                 opacity={0.42}
                 depthWrite={false}
+                polygonOffset
+                polygonOffsetFactor={-1}
               />
             </mesh>
           </>
@@ -1281,13 +1380,23 @@ export default function IsometricStage() {
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
-              clearcoat={0.22}
-              clearcoatRoughness={0.25}
+              clearcoat={0.36}
+              clearcoatRoughness={0.14}
               roughnessMap={blockMicroTexture}
               bumpMap={blockMicroTexture}
               bumpScale={0.006}
             />
           </RoundedBox>
+          <mesh position={[0, 0.222, 0]} receiveShadow>
+            <boxGeometry args={[1.86, 0.024, 1.16]} />
+            <meshStandardMaterial
+              ref={trimMat1Ref}
+              color="#CBD5E1"
+              metalness={0.45}
+              roughness={0.34}
+              roughnessMap={brushedMetalTexture}
+            />
+          </mesh>
           <mesh position={[0, -0.215, 0]}>
             <boxGeometry args={[1.92, 0.035, 1.22]} />
             <meshStandardMaterial
@@ -1327,13 +1436,23 @@ export default function IsometricStage() {
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
-              clearcoat={0.22}
-              clearcoatRoughness={0.25}
+              clearcoat={0.36}
+              clearcoatRoughness={0.14}
               roughnessMap={blockMicroTexture}
               bumpMap={blockMicroTexture}
               bumpScale={0.006}
             />
           </RoundedBox>
+          <mesh position={[0, 0.472, 0]} receiveShadow>
+            <boxGeometry args={[1.02, 0.024, 1.02]} />
+            <meshStandardMaterial
+              ref={trimMat2Ref}
+              color="#CBD5E1"
+              metalness={0.45}
+              roughness={0.34}
+              roughnessMap={brushedMetalTexture}
+            />
+          </mesh>
           <mesh position={[0, -0.465, 0]}>
             <boxGeometry args={[1.08, 0.035, 1.08]} />
             <meshStandardMaterial
@@ -1373,13 +1492,23 @@ export default function IsometricStage() {
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
-              clearcoat={0.22}
-              clearcoatRoughness={0.25}
+              clearcoat={0.36}
+              clearcoatRoughness={0.14}
               roughnessMap={blockMicroTexture}
               bumpMap={blockMicroTexture}
               bumpScale={0.006}
             />
           </RoundedBox>
+          <mesh position={[0, 0.152, 0]} receiveShadow>
+            <boxGeometry args={[1.32, 0.024, 0.88]} />
+            <meshStandardMaterial
+              ref={trimMat3Ref}
+              color="#CBD5E1"
+              metalness={0.45}
+              roughness={0.34}
+              roughnessMap={brushedMetalTexture}
+            />
+          </mesh>
         </group>
 
         {/* Block 4: Secondary architectural block with recessed teal underglow */}
@@ -1400,13 +1529,23 @@ export default function IsometricStage() {
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
-              clearcoat={0.22}
-              clearcoatRoughness={0.25}
+              clearcoat={0.36}
+              clearcoatRoughness={0.14}
               roughnessMap={blockMicroTexture}
               bumpMap={blockMicroTexture}
               bumpScale={0.006}
             />
           </RoundedBox>
+          <mesh position={[0, 0.292, 0]} receiveShadow>
+            <boxGeometry args={[0.84, 0.024, 1.08]} />
+            <meshStandardMaterial
+              ref={trimMat4Ref}
+              color="#CBD5E1"
+              metalness={0.45}
+              roughness={0.34}
+              roughnessMap={brushedMetalTexture}
+            />
+          </mesh>
           <mesh position={[0, -0.285, 0]}>
             <boxGeometry args={[0.9, 0.035, 1.12]} />
             <meshStandardMaterial
@@ -1430,6 +1569,23 @@ export default function IsometricStage() {
             roughnessMap={brushedMetalTexture}
           />
         </mesh>
+
+        {/* Instanced Track Support Anchors (single draw call) */}
+        <instancedMesh
+          ref={pylonsRef}
+          args={[undefined, undefined, PYLON_COUNT]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[0.18, 0.036, 0.11]} />
+          <meshStandardMaterial
+            ref={pylonMatRef}
+            color="#94A3B8"
+            metalness={0.55}
+            roughness={0.32}
+            roughnessMap={brushedMetalTexture}
+          />
+        </instancedMesh>
 
         {/* Rolling / Hovering Brushed Champagne-Gold Metallic Disc */}
         <group ref={discCarrierRef}>
@@ -1463,6 +1619,54 @@ export default function IsometricStage() {
                 clearcoat={0.6}
                 clearcoatRoughness={0.14}
                 envMapIntensity={1.4}
+              />
+            </mesh>
+            {/* Outer machined high-polish gold rim */}
+            <mesh rotation={[0, Math.PI / 2, 0]} castShadow>
+              <torusGeometry args={[DISC_RADIUS - 0.012, 0.022, 16, 48]} />
+              <meshPhysicalMaterial
+                ref={discRimMatRef}
+                color="#D9A84E"
+                metalness={0.92}
+                roughness={0.12}
+                emissive="#5c4314"
+                emissiveIntensity={0.06}
+                clearcoat={0.9}
+                clearcoatRoughness={0.08}
+                envMapIntensity={1.6}
+              />
+            </mesh>
+            {/* Satin center inlay */}
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry
+                args={[DISC_RADIUS * 0.62, DISC_RADIUS * 0.62, 0.092, 36]}
+              />
+              <meshStandardMaterial
+                ref={discInlayMatRef}
+                color="#B88934"
+                metalness={0.65}
+                roughness={0.36}
+                emissive="#5c4314"
+                emissiveIntensity={0.04}
+                roughnessMap={brushedMetalTexture}
+                polygonOffset
+                polygonOffsetFactor={-1}
+              />
+            </mesh>
+            {/* Central precision hub pin */}
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry
+                args={[DISC_RADIUS * 0.18, DISC_RADIUS * 0.18, 0.108, 24]}
+              />
+              <meshPhysicalMaterial
+                color="#F5D07A"
+                metalness={0.9}
+                roughness={0.14}
+                clearcoat={0.85}
+                clearcoatRoughness={0.1}
+                envMapIntensity={1.5}
+                polygonOffset
+                polygonOffsetFactor={-2}
               />
             </mesh>
           </group>
