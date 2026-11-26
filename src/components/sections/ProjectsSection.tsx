@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowUpRight, Code2 } from "lucide-react";
+import { ArrowUpRight, Code2, Layers } from "lucide-react";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
 import { scrollState } from "@/lib/scrollState";
 
@@ -87,9 +88,38 @@ export default function ProjectsSection() {
                   }
                 }}
                 className={`pointer-events-auto group rounded-2xl border border-slate-200/80 bg-white/60 p-7 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-slate-300/90 hover:bg-white/80 hover:shadow-md sm:p-9 ${
-                  index === 1 ? "lg:ml-6" : ""
+                  index % 2 === 1 ? "lg:ml-6" : ""
                 }`}
               >
+                {/* Project Screenshot / Clean Gradient Preview */}
+                <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/70">
+                  {project.image ? (
+                    <Image
+                      src={project.image}
+                      alt={`${project.title} preview`}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 58vw"
+                      className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50/85 to-teal-50/75 transition-transform duration-500 ease-out group-hover:scale-105">
+                      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-indigo-200/40 blur-2xl" />
+                      <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-teal-200/40 blur-2xl" />
+                      <div className="relative flex flex-col items-center gap-2.5 text-center px-6">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/80 shadow-xs backdrop-blur-sm">
+                          <Layers className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <span className="font-mono text-xs font-medium uppercase tracking-widest text-[#64748B]">
+                          {project.category}
+                        </span>
+                        <span className="font-display text-lg font-semibold text-[#0F172A]">
+                          {project.title}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <span className="font-mono text-xs font-medium uppercase tracking-wider text-blue-600">
@@ -154,4 +184,3 @@ export default function ProjectsSection() {
     </section>
   );
 }
-

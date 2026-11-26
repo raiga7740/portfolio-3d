@@ -12,6 +12,7 @@ import {
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import ProjectsSection from "@/components/sections/ProjectsSection";
+import GallerySection from "@/components/sections/GallerySection";
 import AboutSection from "@/components/sections/AboutSection";
 import ContactFooterSection from "@/components/sections/ContactFooterSection";
 
@@ -95,16 +96,16 @@ export default function PortfolioExperience() {
           0
         );
 
-      // Phase 1 -> Phase 2: Projects -> About (orbit ~45deg right, exploded blocks, hovering disc)
-      const aboutTl = gsap.timeline({
+      // Phase 1 -> Phase 1.5: Projects -> Visual Gallery (recede calmly behind 3D exhibition)
+      const galleryTl = gsap.timeline({
         scrollTrigger: {
-          trigger: "#about",
+          trigger: "#gallery",
           start: "top bottom",
           end: "center center",
           scrub: 1.2,
         },
       });
-      aboutTl
+      galleryTl
         .fromTo(
           scrollState,
           {
@@ -118,6 +119,59 @@ export default function PortfolioExperience() {
           },
           {
             sectionIndex: 2,
+            stageRotY: -0.1,
+            blockSpread: 0.45,
+            blockElevation: 0.4,
+            trackSpeed: 0.85,
+            orbLift: 0.35,
+            glowIntensity: 0.9,
+            ease: "none",
+            immediateRender: false,
+          },
+          0
+        )
+        .fromTo(
+          scrollState.cameraPos,
+          { x: 11.4, y: 7.9, z: 7.4 },
+          { x: 10.2, y: 11.8, z: 9.2, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.cameraLookAt,
+          { x: 2.05, y: 0.35, z: -1.65 },
+          { x: 0.4, y: 0.45, z: 0.2, ease: "none", immediateRender: false },
+          0
+        )
+        .fromTo(
+          scrollState.stageOffset,
+          { x: -0.25, y: 0, z: 0.2 },
+          { x: 0, y: 0, z: 0, ease: "none", immediateRender: false },
+          0
+        );
+
+      // Phase 1.5 -> Phase 2: Gallery -> About (orbit ~45deg right, exploded blocks, hovering disc)
+      const aboutTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#about",
+          start: "top bottom",
+          end: "center center",
+          scrub: 1.2,
+        },
+      });
+      aboutTl
+        .fromTo(
+          scrollState,
+          {
+            sectionIndex: 2,
+            stageRotY: -0.1,
+            blockSpread: 0.45,
+            blockElevation: 0.4,
+            trackSpeed: 0.85,
+            orbLift: 0.35,
+            glowIntensity: 0.9,
+          },
+          {
+            sectionIndex: 3,
             stageRotY: -0.35,
             blockSpread: 1,
             blockElevation: 0.55,
@@ -131,19 +185,19 @@ export default function PortfolioExperience() {
         )
         .fromTo(
           scrollState.cameraPos,
-          { x: 11.4, y: 7.9, z: 7.4 },
+          { x: 10.2, y: 11.8, z: 9.2 },
           { x: 8.85, y: 7.35, z: 3.15, ease: "none", immediateRender: false },
           0
         )
         .fromTo(
           scrollState.cameraLookAt,
-          { x: 2.05, y: 0.35, z: -1.65 },
+          { x: 0.4, y: 0.45, z: 0.2 },
           { x: -0.35, y: 0.95, z: 2.15, ease: "none", immediateRender: false },
           0
         )
         .fromTo(
           scrollState.stageOffset,
-          { x: -0.25, y: 0, z: 0.2 },
+          { x: 0, y: 0, z: 0 },
           { x: 0.15, y: 0, z: -0.15, ease: "none", immediateRender: false },
           0
         );
@@ -161,7 +215,7 @@ export default function PortfolioExperience() {
         .fromTo(
           scrollState,
           {
-            sectionIndex: 2,
+            sectionIndex: 3,
             stageRotY: -0.35,
             blockSpread: 1,
             blockElevation: 0.55,
@@ -170,7 +224,7 @@ export default function PortfolioExperience() {
             glowIntensity: 1.25,
           },
           {
-            sectionIndex: 3,
+            sectionIndex: 4,
             stageRotY: 0,
             blockSpread: 0,
             blockElevation: 0,
@@ -246,10 +300,10 @@ export default function PortfolioExperience() {
       <main>
         <HeroSection onNavigate={handleNavigate} />
         <ProjectsSection />
+        <GallerySection />
         <AboutSection />
         <ContactFooterSection />
       </main>
     </div>
   );
 }
-

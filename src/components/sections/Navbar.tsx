@@ -31,14 +31,14 @@ export default function Navbar({ onNavigate }: NavbarProps) {
 
         <nav
           aria-label="Primary Navigation"
-          className="flex items-center gap-1 sm:gap-2"
+          className="flex items-center gap-0.5 sm:gap-2"
         >
           {PORTFOLIO_DATA.navLinks.map((item) => (
             <a
               key={item.href}
               href={item.href}
               onClick={(e) => handleAnchorClick(e, item.href)}
-              className="rounded-full px-3.5 py-1.5 text-sm font-medium text-[#64748B] transition-colors duration-200 hover:bg-white/80 hover:text-[#0F172A]"
+              className="rounded-full px-2.5 py-1.5 text-xs font-medium text-[#64748B] transition-colors duration-200 hover:bg-white/80 hover:text-[#0F172A] sm:px-3.5 sm:text-sm"
             >
               {item.label}
             </a>

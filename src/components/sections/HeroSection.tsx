@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ArrowDownRight, Mail } from "lucide-react";
+import { ArrowDownRight, Download, Mail } from "lucide-react";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
 
 interface HeroSectionProps {
@@ -98,6 +98,15 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
             >
               <Mail className="h-4 w-4 text-[#64748B]" />
               <span>{PORTFOLIO_DATA.hero.secondaryCta.label}</span>
+            </a>
+
+            <a
+              href={PORTFOLIO_DATA.cvUrl}
+              download="CV_Gayuh_Raiguna.pdf"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/65 px-6 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/90"
+            >
+              <Download className="h-4 w-4 text-[#64748B]" />
+              <span>{PORTFOLIO_DATA.hero.cvCta.label}</span>
             </a>
           </div>
         </div>

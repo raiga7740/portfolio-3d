@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Download } from "lucide-react";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -77,6 +78,17 @@ export default function AboutSection() {
                   <span>{tech}</span>
                 </span>
               ))}
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a
+                href={PORTFOLIO_DATA.cvUrl}
+                download="CV_Gayuh_Raiguna.pdf"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 px-6 py-3 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+              >
+                <Download className="h-4 w-4 text-[#64748B]" />
+                <span>{PORTFOLIO_DATA.about.cvLabel}</span>
+              </a>
             </div>
           </div>
         </div>
