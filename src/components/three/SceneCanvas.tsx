@@ -139,6 +139,8 @@ export default function SceneCanvas() {
         toneMappingExposure: 0.85,
       }}
       className="pointer-events-none"
+      eventSource={typeof document !== "undefined" ? document.body : undefined}
+      eventPrefix="client"
     >
       <color attach="background" args={["#F1F5F9"]} />
       <fog attach="fog" args={["#F1F5F9", 15, 34]} />
