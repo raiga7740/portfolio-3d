@@ -20,29 +20,63 @@ export default function ProjectsSection() {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    const ctx = prefersReducedMotion
-      ? null
-      : gsap.context(() => {
-          const cards = gsap.utils.toArray<HTMLElement>("[data-project-card]");
-          cards.forEach((card) => {
-            gsap.from(card, {
-              y: 26,
-              opacity: 0,
-              duration: 0.7,
-              ease: "power2.out",
-              clearProps: "transform,opacity",
-              scrollTrigger: {
-                trigger: card,
-                start: "top 88%",
-                once: true,
-              },
-            });
+    const ctx = gsap.context(() => {
+      const cards = gsap.utils.toArray<HTMLElement>("[data-project-card]");
+      cards.forEach((card) => {
+        const projectId = card.dataset.projectId ?? null;
+
+        ScrollTrigger.create({
+          trigger: card,
+          start: "top 62%",
+          end: "bottom 38%",
+          onEnter: () => {
+            if (window.innerWidth < 1024 && projectId) {
+              scrollState.hoveredProject = projectId;
+            }
+          },
+          onEnterBack: () => {
+            if (window.innerWidth < 1024 && projectId) {
+              scrollState.hoveredProject = projectId;
+            }
+          },
+          onLeave: () => {
+            if (
+              window.innerWidth < 1024 &&
+              scrollState.hoveredProject === projectId
+            ) {
+              scrollState.hoveredProject = null;
+            }
+          },
+          onLeaveBack: () => {
+            if (
+              window.innerWidth < 1024 &&
+              scrollState.hoveredProject === projectId
+            ) {
+              scrollState.hoveredProject = null;
+            }
+          },
+        });
+
+        if (!prefersReducedMotion) {
+          gsap.from(card, {
+            y: 26,
+            opacity: 0,
+            duration: 0.7,
+            ease: "power2.out",
+            clearProps: "transform,opacity",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 88%",
+              once: true,
+            },
           });
-        }, sectionRef);
+        }
+      });
+    }, sectionRef);
 
     return () => {
       scrollState.hoveredProject = null;
-      ctx?.revert();
+      ctx.revert();
     };
   }, []);
 
@@ -81,6 +115,10 @@ export default function ProjectsSection() {
               <article
                 key={project.id}
                 data-project-card
+                data-project-id={project.id}
+                onPointerDown={() => {
+                  scrollState.hoveredProject = project.id;
+                }}
                 onMouseEnter={() => {
                   scrollState.hoveredProject = project.id;
                 }}

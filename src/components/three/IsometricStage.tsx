@@ -317,6 +317,7 @@ export default function IsometricStage() {
   const pointerDownRef = useRef(false);
   const isDraggingStageRef = useRef(false);
   const dragStartXRef = useRef(0);
+  const dragStartYRef = useRef(0);
   const dragLastXRef = useRef(0);
   const dragMovedRef = useRef(false);
   const dragRotOffsetRef = useRef(0);
@@ -452,16 +453,23 @@ export default function IsometricStage() {
     const handlePointerMove = (event: PointerEvent) => {
       pointerRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointerRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      pointerActiveRef.current = true;
+      pointerActiveRef.current = event.pointerType !== "touch";
 
       if (pointerDownRef.current) {
         const dx = event.clientX - dragLastXRef.current;
         const totalDx = Math.abs(event.clientX - dragStartXRef.current);
-        if (totalDx > 5 && !isDraggingStageRef.current) {
-          isDraggingStageRef.current = true;
-          dragMovedRef.current = true;
-          returningToScrollRef.current = false;
-          syncCursor();
+        const totalDy = Math.abs(event.clientY - dragStartYRef.current);
+        if (!isDraggingStageRef.current) {
+          if (totalDy > 6 && totalDy > totalDx) {
+            pointerDownRef.current = false;
+            return;
+          }
+          if (totalDx > 6 && totalDx > totalDy * 1.2) {
+            isDraggingStageRef.current = true;
+            dragMovedRef.current = true;
+            returningToScrollRef.current = false;
+            syncCursor();
+          }
         }
         if (isDraggingStageRef.current) {
           const deltaRot = dx * 0.0065;
@@ -477,6 +485,7 @@ export default function IsometricStage() {
         pointerDownRef.current = true;
         dragMovedRef.current = false;
         dragStartXRef.current = event.clientX;
+        dragStartYRef.current = event.clientY;
         dragLastXRef.current = event.clientX;
         dragVelocityRef.current = 0;
       }
@@ -534,7 +543,11 @@ export default function IsometricStage() {
 
   const handleCoinPointerOver = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
-      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+      if (
+        e.nativeEvent.pointerType === "touch" ||
+        isDraggingStageRef.current ||
+        isOverInteractiveHtml(e.nativeEvent.target)
+      ) {
         if (coinHoveredRef.current) {
           coinHoveredRef.current = false;
           syncCursor();
@@ -550,7 +563,11 @@ export default function IsometricStage() {
 
   const handleCoinPointerMove = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
-      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+      if (
+        e.nativeEvent.pointerType === "touch" ||
+        isDraggingStageRef.current ||
+        isOverInteractiveHtml(e.nativeEvent.target)
+      ) {
         if (coinHoveredRef.current) {
           coinHoveredRef.current = false;
           syncCursor();
@@ -582,7 +599,11 @@ export default function IsometricStage() {
 
   const handleBlockPointerOver = useCallback(
     (index: number, e: ThreeEvent<PointerEvent>) => {
-      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+      if (
+        e.nativeEvent.pointerType === "touch" ||
+        isDraggingStageRef.current ||
+        isOverInteractiveHtml(e.nativeEvent.target)
+      ) {
         if (hoveredBlockRef.current === index) {
           hoveredBlockRef.current = null;
           syncCursor();
@@ -598,7 +619,11 @@ export default function IsometricStage() {
 
   const handleBlockPointerMove = useCallback(
     (index: number, e: ThreeEvent<PointerEvent>) => {
-      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+      if (
+        e.nativeEvent.pointerType === "touch" ||
+        isDraggingStageRef.current ||
+        isOverInteractiveHtml(e.nativeEvent.target)
+      ) {
         if (hoveredBlockRef.current === index) {
           hoveredBlockRef.current = null;
           syncCursor();
