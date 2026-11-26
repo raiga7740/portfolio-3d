@@ -56,15 +56,15 @@ export default function ProjectsSection() {
         {/* Section Heading */}
         <div className="mb-14 max-w-xl pointer-events-auto">
           <div className="mb-3 flex items-center gap-3">
-            <span className="font-mono text-xs uppercase tracking-widest text-[#64748B]">
+            <span className="font-mono text-xs uppercase tracking-widest text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
               {PORTFOLIO_DATA.projectsSection.eyebrow[lang]}
             </span>
-            <span className="h-px w-10 bg-slate-300" />
+            <span className="h-px w-10 bg-slate-300 transition-colors duration-500 dark:bg-slate-700" />
           </div>
-          <h2 className="font-display text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
+          <h2 className="font-display text-3xl font-bold tracking-tight text-[#0F172A] transition-colors duration-500 dark:text-[#F8FAFC] sm:text-4xl">
             {PORTFOLIO_DATA.projectsSection.title[lang]}
           </h2>
-          <p className="mt-3 text-base leading-relaxed text-[#64748B]">
+          <p className="mt-3 text-base leading-relaxed text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
             {PORTFOLIO_DATA.projectsSection.subtitle[lang]}
           </p>
         </div>
@@ -89,12 +89,12 @@ export default function ProjectsSection() {
                     scrollState.hoveredProject = null;
                   }
                 }}
-                className={`pointer-events-auto group rounded-2xl border border-slate-200/80 bg-white/60 p-7 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-slate-300/90 hover:bg-white/80 hover:shadow-md sm:p-9 ${
+                className={`pointer-events-auto group rounded-2xl border border-slate-200/80 bg-white/75 p-7 shadow-sm backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-slate-300/90 hover:bg-white/90 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-slate-700 dark:hover:bg-slate-900/85 sm:p-9 ${
                   index % 2 === 1 ? "lg:ml-6" : ""
                 }`}
               >
                 {/* Project Screenshot / Clean Gradient Preview */}
-                <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/70">
+                <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/80 transition-colors duration-500 dark:border-slate-800/80 dark:bg-slate-950/60">
                   {project.image ? (
                     <Image
                       src={project.image}
@@ -104,17 +104,17 @@ export default function ProjectsSection() {
                       className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
                     />
                   ) : (
-                    <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50/85 to-teal-50/75 transition-transform duration-500 ease-out group-hover:scale-105">
-                      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-indigo-200/40 blur-2xl" />
-                      <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-teal-200/40 blur-2xl" />
-                      <div className="relative flex flex-col items-center gap-2.5 text-center px-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/80 shadow-xs backdrop-blur-sm">
-                          <Layers className="h-5 w-5 text-indigo-600" />
+                    <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50/85 to-teal-50/75 transition-all duration-500 ease-out group-hover:scale-105 dark:from-slate-900 dark:via-indigo-950/70 dark:to-teal-950/60">
+                      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-indigo-200/40 blur-2xl dark:bg-indigo-500/20" />
+                      <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-teal-200/40 blur-2xl dark:bg-teal-500/20" />
+                      <div className="relative flex flex-col items-center gap-2.5 px-6 text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/80 shadow-xs backdrop-blur-sm transition-colors duration-500 dark:border-slate-700/80 dark:bg-slate-800/80">
+                          <Layers className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                         </div>
-                        <span className="font-mono text-xs font-medium uppercase tracking-widest text-[#64748B]">
+                        <span className="font-mono text-xs font-medium uppercase tracking-widest text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
                           {project.category[lang]}
                         </span>
-                        <span className="font-display text-lg font-semibold text-[#0F172A]">
+                        <span className="font-display text-lg font-semibold text-[#0F172A] transition-colors duration-500 dark:text-[#F8FAFC]">
                           {project.title}
                         </span>
                       </div>
@@ -124,23 +124,23 @@ export default function ProjectsSection() {
 
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
-                    <span className="font-mono text-xs font-medium uppercase tracking-wider text-blue-600">
+                    <span className="font-mono text-xs font-medium uppercase tracking-wider text-teal-700 transition-colors duration-500 dark:text-teal-400">
                       {project.category[lang]}
                     </span>
-                    <h3 className="mt-1 font-display text-2xl font-bold tracking-tight text-[#0F172A]">
+                    <h3 className="mt-1 font-display text-2xl font-bold tracking-tight text-[#0F172A] transition-colors duration-500 dark:text-[#F8FAFC]">
                       {project.title}
                     </h3>
                   </div>
-                  <span className="rounded-lg border border-slate-200/80 bg-white/75 px-2.5 py-1 font-mono text-xs font-medium text-[#64748B]">
+                  <span className="rounded-lg border border-slate-200/80 bg-white/80 px-2.5 py-1 font-mono text-xs font-medium text-[#475569] transition-colors duration-500 dark:border-slate-700/80 dark:bg-slate-800/75 dark:text-[#94A3B8]">
                     {project.number}
                   </span>
                 </div>
 
-                <p className="mb-2 text-sm font-medium text-[#0F172A]/80">
+                <p className="mb-2 text-sm font-medium text-[#0F172A]/85 transition-colors duration-500 dark:text-slate-200/90">
                   {project.subtitle[lang]}
                 </p>
 
-                <p className="mb-6 text-sm leading-relaxed text-[#64748B] sm:text-base">
+                <p className="mb-6 text-sm leading-relaxed text-[#475569] transition-colors duration-500 dark:text-[#94A3B8] sm:text-base">
                   {project.description[lang]}
                 </p>
 
@@ -149,7 +149,7 @@ export default function ProjectsSection() {
                   {project.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-slate-200/80 bg-slate-100/75 px-3 py-1 font-mono text-xs font-medium text-[#0F172A]"
+                      className="rounded-full border border-slate-200/80 bg-slate-100/85 px-3 py-1 font-mono text-xs font-medium text-[#0F172A] transition-colors duration-500 dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-200"
                     >
                       {tag}
                     </span>
@@ -157,12 +157,12 @@ export default function ProjectsSection() {
                 </div>
 
                 {/* Links */}
-                <div className="flex flex-wrap items-center gap-6 border-t border-slate-200/70 pt-5">
+                <div className="flex flex-wrap items-center gap-6 border-t border-slate-200/70 pt-5 transition-colors duration-500 dark:border-slate-800/80">
                   <a
                     href={project.liveDemoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group/link inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F172A] transition-colors hover:text-blue-600"
+                    className="group/link inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F172A] transition-colors duration-300 hover:text-teal-700 dark:text-[#F8FAFC] dark:hover:text-teal-400"
                   >
                     <span>{PORTFOLIO_DATA.projectsSection.liveDemoLabel[lang]}</span>
                     <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
@@ -172,7 +172,7 @@ export default function ProjectsSection() {
                     href={project.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#64748B] transition-colors hover:text-[#0F172A]"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#475569] transition-colors duration-300 hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]"
                   >
                     <Code2 className="h-4 w-4" />
                     <span>{PORTFOLIO_DATA.projectsSection.githubLabel[lang]}</span>

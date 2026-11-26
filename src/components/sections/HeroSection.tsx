@@ -54,24 +54,24 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
         <div className="lg:col-span-6 pointer-events-auto">
           <div
             data-hero-enter
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 shadow-sm backdrop-blur-md"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/75 px-3.5 py-1.5 shadow-sm backdrop-blur-md transition-colors duration-500 dark:border-slate-800/80 dark:bg-slate-900/70"
           >
-            <span className="h-2 w-2 rounded-full bg-teal-600 animate-pulse" />
-            <span className="font-mono text-xs uppercase tracking-wider text-[#64748B]">
+            <span className="h-2 w-2 rounded-full bg-teal-600 animate-pulse dark:bg-teal-400" />
+            <span className="font-mono text-xs uppercase tracking-wider text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
               {PORTFOLIO_DATA.hero.status[lang]}
             </span>
           </div>
 
           <h1
             data-hero-enter
-            className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-[#0F172A] sm:text-5xl lg:text-[3.35rem]"
+            className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-[#0F172A] transition-colors duration-500 dark:text-[#F8FAFC] sm:text-5xl lg:text-[3.35rem]"
           >
             {PORTFOLIO_DATA.hero.headline[lang]}
           </h1>
 
           <p
             data-hero-enter
-            className="mt-6 max-w-xl text-base leading-relaxed text-[#64748B] sm:text-lg"
+            className="mt-6 max-w-xl text-base leading-relaxed text-[#475569] transition-colors duration-500 dark:text-[#94A3B8] sm:text-lg"
           >
             {PORTFOLIO_DATA.hero.subheadline[lang]}
           </p>
@@ -85,7 +85,7 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
               onClick={(e) =>
                 handleAnchorClick(e, PORTFOLIO_DATA.hero.primaryCta.href)
               }
-              className="inline-flex items-center gap-2 rounded-full bg-[#0F172A] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-full bg-[#0F172A] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
             >
               <span>{PORTFOLIO_DATA.hero.primaryCta.label[lang]}</span>
               <ArrowDownRight className="h-4 w-4" />
@@ -96,18 +96,18 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
               onClick={(e) =>
                 handleAnchorClick(e, PORTFOLIO_DATA.hero.secondaryCta.href)
               }
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/65 px-7 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/75 px-7 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             >
-              <Mail className="h-4 w-4 text-[#64748B]" />
+              <Mail className="h-4 w-4 text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]" />
               <span>{PORTFOLIO_DATA.hero.secondaryCta.label[lang]}</span>
             </a>
 
             <a
               href={PORTFOLIO_DATA.cvUrl}
               download="CV_Gayuh_Raiguna.pdf"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/65 px-6 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/75 px-6 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             >
-              <Download className="h-4 w-4 text-[#64748B]" />
+              <Download className="h-4 w-4 text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]" />
               <span>{PORTFOLIO_DATA.hero.cvCta.label[lang]}</span>
             </a>
           </div>

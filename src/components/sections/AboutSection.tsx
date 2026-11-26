@@ -44,28 +44,28 @@ export default function AboutSection() {
       className="relative w-full py-24 sm:py-36 pointer-events-none"
     >
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 px-6 sm:px-10 lg:grid-cols-12 lg:px-16">
-        {/* Left Column: Bio & Tech Stack Badges inside light frosted surface */}
+        {/* Left Column: Bio & Tech Stack Badges inside frosted surface */}
         <div
           data-reveal="about"
-          className="lg:col-span-6 pointer-events-auto rounded-3xl border border-slate-200/80 bg-white/60 p-8 shadow-sm backdrop-blur-md sm:p-10"
+          className="lg:col-span-6 pointer-events-auto rounded-3xl border border-slate-200/80 bg-white/75 p-8 shadow-sm backdrop-blur-md transition-colors duration-500 dark:border-slate-800/80 dark:bg-slate-900/70 sm:p-10"
         >
           <div className="mb-3 flex items-center gap-3">
-            <span className="font-mono text-xs uppercase tracking-widest text-[#64748B]">
+            <span className="font-mono text-xs uppercase tracking-widest text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
               {PORTFOLIO_DATA.about.eyebrow[lang]}
             </span>
-            <span className="h-px w-10 bg-slate-300" />
+            <span className="h-px w-10 bg-slate-300 transition-colors duration-500 dark:bg-slate-700" />
           </div>
 
-          <h2 className="font-display text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
+          <h2 className="font-display text-3xl font-bold tracking-tight text-[#0F172A] transition-colors duration-500 dark:text-[#F8FAFC] sm:text-4xl">
             {PORTFOLIO_DATA.about.title[lang]}
           </h2>
 
-          <p className="mt-6 text-base leading-relaxed text-[#64748B] sm:text-lg">
+          <p className="mt-6 text-base leading-relaxed text-[#475569] transition-colors duration-500 dark:text-[#94A3B8] sm:text-lg">
             {PORTFOLIO_DATA.about.bio[lang]}
           </p>
 
-          <div className="mt-10 border-t border-slate-200/70 pt-7">
-            <h3 className="mb-4 font-mono text-xs font-semibold uppercase tracking-widest text-[#64748B]">
+          <div className="mt-10 border-t border-slate-200/70 pt-7 transition-colors duration-500 dark:border-slate-800/80">
+            <h3 className="mb-4 font-mono text-xs font-semibold uppercase tracking-widest text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]">
               {PORTFOLIO_DATA.about.stackTitle[lang]}
             </h3>
 
@@ -74,9 +74,9 @@ export default function AboutSection() {
                 <span
                   key={tech}
                   data-tech-badge
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/75 px-4 py-2 font-mono text-xs font-medium text-[#0F172A] shadow-xs backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 font-mono text-xs font-medium text-[#0F172A] shadow-xs backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal-600/70 dark:bg-teal-400" />
                   <span>{tech}</span>
                 </span>
               ))}
@@ -86,9 +86,9 @@ export default function AboutSection() {
               <a
                 href={PORTFOLIO_DATA.cvUrl}
                 download="CV_Gayuh_Raiguna.pdf"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 px-6 py-3 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 px-6 py-3 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
               >
-                <Download className="h-4 w-4 text-[#64748B]" />
+                <Download className="h-4 w-4 text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]" />
                 <span>{PORTFOLIO_DATA.about.cvLabel[lang]}</span>
               </a>
             </div>
