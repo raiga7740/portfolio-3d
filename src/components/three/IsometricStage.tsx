@@ -13,6 +13,24 @@ import {
 const DISC_RADIUS = 0.26;
 const HERO_STAGE_OFFSET_X = 1.65;
 
+const LIGHT_ACCENT_COLOR = "#0D9488";
+const DARK_ACCENT_COLOR = "#2DD4BF";
+
+const LIGHT_FLOOR_COLOR = new THREE.Color("#E2E8F0");
+const DARK_FLOOR_COLOR = new THREE.Color("#0F172A");
+const LIGHT_GRID_CELL = new THREE.Color("#cbd5e1");
+const DARK_GRID_CELL = new THREE.Color("#1E293B");
+const LIGHT_GRID_SECTION = new THREE.Color("#94a3b8");
+const DARK_GRID_SECTION = new THREE.Color("#334155");
+const LIGHT_BLOCK_COLOR = new THREE.Color("#FFFFFF");
+const DARK_BLOCK_COLOR = new THREE.Color("#1E293B");
+const LIGHT_TRACK_COLOR = new THREE.Color("#94A3B8");
+const DARK_TRACK_COLOR = new THREE.Color("#64748B");
+const LIGHT_COIN_COLOR = new THREE.Color("#D9A84E");
+const DARK_COIN_COLOR = new THREE.Color("#F5D07A");
+const LIGHT_COIN_EMISSIVE = new THREE.Color("#5c4314");
+const DARK_COIN_EMISSIVE = new THREE.Color("#8a6418");
+
 interface BlockChoreographyConfig {
   baseX: number;
   baseY: number;
@@ -100,9 +118,9 @@ function createRadialGlowTexture(): THREE.CanvasTexture | null {
     center,
     center
   );
-  gradient.addColorStop(0, "rgba(20, 184, 166, 0.55)");
-  gradient.addColorStop(0.45, "rgba(20, 184, 166, 0.24)");
-  gradient.addColorStop(1, "rgba(20, 184, 166, 0)");
+  gradient.addColorStop(0, "rgba(255, 255, 255, 0.78)");
+  gradient.addColorStop(0.45, "rgba(255, 255, 255, 0.34)");
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
 
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
@@ -213,6 +231,15 @@ export default function IsometricStage() {
   const block3Ref = useRef<THREE.Group>(null);
   const block4Ref = useRef<THREE.Group>(null);
 
+  const floorMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const gridMeshRef = useRef<THREE.Mesh>(null);
+  const blockMat1Ref = useRef<THREE.MeshPhysicalMaterial>(null);
+  const blockMat2Ref = useRef<THREE.MeshPhysicalMaterial>(null);
+  const blockMat3Ref = useRef<THREE.MeshPhysicalMaterial>(null);
+  const blockMat4Ref = useRef<THREE.MeshPhysicalMaterial>(null);
+  const trackMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const discMatRef = useRef<THREE.MeshPhysicalMaterial>(null);
+
   const floorGlow1Ref = useRef<THREE.Mesh>(null);
   const floorGlow2Ref = useRef<THREE.Mesh>(null);
   const floorGlow4Ref = useRef<THREE.Mesh>(null);
@@ -232,6 +259,7 @@ export default function IsometricStage() {
   const pointerRef = useRef({ x: 0, y: 0 });
   const progressRef = useRef(0);
   const hoverSpinRef = useRef(0);
+  const themeBlendRef = useRef(0);
 
   // Smoothed scalar choreography refs to keep transitions fluid across 60Hz and 120Hz displays
   const spreadRef = useRef(scrollState.blockSpread);
@@ -359,8 +387,17 @@ export default function IsometricStage() {
     const safeDelta = Math.min(delta, 0.1);
     const damp = 1 - Math.exp(-5 * safeDelta);
     const colorDamp = 1 - Math.exp(-4.5 * safeDelta);
+    const themeDamp = 1 - Math.exp(-5 * safeDelta);
     const elapsed = state.clock.getElapsedTime();
     const isMobile = viewport.width < 6;
+    const isDark = scrollState.isDark;
+
+    themeBlendRef.current = THREE.MathUtils.lerp(
+      themeBlendRef.current,
+      isDark ? 1 : 0,
+      themeDamp
+    );
+    const darkBlend = themeBlendRef.current;
 
     // Smoothly interpolate choreography scalars
     spreadRef.current = THREE.MathUtils.lerp(
@@ -391,20 +428,123 @@ export default function IsometricStage() {
 
     const hoveredId = scrollState.hoveredProject;
     const isHovered = hoveredId !== null;
+    const defaultAccentHex = isDark ? DARK_ACCENT_COLOR : LIGHT_ACCENT_COLOR;
     const targetHex =
-      (hoveredId && PROJECT_ACCENT_COLORS[hoveredId]) || DEFAULT_ACCENT_COLOR;
+      (hoveredId && PROJECT_ACCENT_COLORS[hoveredId]) || defaultAccentHex;
     targetColor.set(targetHex);
     currentAccentColor.lerp(targetColor, colorDamp);
 
-    // Update radial floor glow opacity, bloom-ready emissive strips (> 1.1), and bounce point lights
+    // Smoothly interpolate floor, grid, blocks, track, and gold coin materials between Light and Dark presets
+    if (floorMatRef.current) {
+      floorMatRef.current.color.lerp(
+        isDark ? DARK_FLOOR_COLOR : LIGHT_FLOOR_COLOR,
+        themeDamp
+      );
+    }
+
+    if (
+      gridMeshRef.current &&
+      gridMeshRef.current.material instanceof THREE.ShaderMaterial
+    ) {
+      const uniforms = gridMeshRef.current.material.uniforms;
+      if (uniforms.cellColor?.value instanceof THREE.Color) {
+        uniforms.cellColor.value.lerp(
+          isDark ? DARK_GRID_CELL : LIGHT_GRID_CELL,
+          themeDamp
+        );
+      }
+      if (uniforms.sectionColor?.value instanceof THREE.Color) {
+        uniforms.sectionColor.value.lerp(
+          isDark ? DARK_GRID_SECTION : LIGHT_GRID_SECTION,
+          themeDamp
+        );
+      }
+    }
+
+    const blockMats = [
+      blockMat1Ref.current,
+      blockMat2Ref.current,
+      blockMat3Ref.current,
+      blockMat4Ref.current,
+    ];
+    for (let i = 0; i < blockMats.length; i += 1) {
+      const mat = blockMats[i];
+      if (!mat) continue;
+      mat.color.lerp(isDark ? DARK_BLOCK_COLOR : LIGHT_BLOCK_COLOR, themeDamp);
+      mat.roughness = THREE.MathUtils.lerp(
+        mat.roughness,
+        isDark ? 0.48 : 0.42,
+        themeDamp
+      );
+      mat.metalness = THREE.MathUtils.lerp(
+        mat.metalness,
+        isDark ? 0.08 : 0.04,
+        themeDamp
+      );
+      mat.clearcoat = THREE.MathUtils.lerp(
+        mat.clearcoat,
+        isDark ? 0.15 : 0.22,
+        themeDamp
+      );
+    }
+
+    if (trackMatRef.current) {
+      trackMatRef.current.color.lerp(
+        isDark ? DARK_TRACK_COLOR : LIGHT_TRACK_COLOR,
+        themeDamp
+      );
+      trackMatRef.current.metalness = THREE.MathUtils.lerp(
+        trackMatRef.current.metalness,
+        isDark ? 0.7 : 0.55,
+        themeDamp
+      );
+      trackMatRef.current.roughness = THREE.MathUtils.lerp(
+        trackMatRef.current.roughness,
+        isDark ? 0.25 : 0.32,
+        themeDamp
+      );
+    }
+
+    if (discMatRef.current) {
+      discMatRef.current.color.lerp(
+        isDark ? DARK_COIN_COLOR : LIGHT_COIN_COLOR,
+        themeDamp
+      );
+      discMatRef.current.metalness = THREE.MathUtils.lerp(
+        discMatRef.current.metalness,
+        isDark ? 0.82 : 0.78,
+        themeDamp
+      );
+      discMatRef.current.roughness = THREE.MathUtils.lerp(
+        discMatRef.current.roughness,
+        isDark ? 0.18 : 0.22,
+        themeDamp
+      );
+      discMatRef.current.emissive.lerp(
+        isDark ? DARK_COIN_EMISSIVE : LIGHT_COIN_EMISSIVE,
+        themeDamp
+      );
+      discMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
+        discMatRef.current.emissiveIntensity,
+        isDark ? 0.15 : 0.06,
+        themeDamp
+      );
+    }
+
+    // Update radial floor glow opacity, emissive strips, and bounce point lights
+    const baseFloorOpacity = THREE.MathUtils.lerp(0.42, 0.68, darkBlend);
+    const glowFactor =
+      THREE.MathUtils.clamp(glowRef.current / 0.8, 0.75, 1.35) *
+      (isHovered ? 1.15 : 1.0);
     const floorGlowOpacity = THREE.MathUtils.clamp(
-      glowRef.current * (isHovered ? 1.05 : 0.85),
-      0.25,
-      1.0
+      baseFloorOpacity * glowFactor,
+      0.3,
+      0.88
     );
+    const baseStripIntensity = THREE.MathUtils.lerp(1.25, 1.95, darkBlend);
     const stripEmissiveIntensity = Math.max(
-      1.15,
-      glowRef.current * (isHovered ? 1.95 : 1.55)
+      1.1,
+      baseStripIntensity * (glowRef.current / 0.8) * (isHovered ? 1.25 : 1.0)
     );
 
     const floorGlowMats = [
@@ -415,6 +555,7 @@ export default function IsometricStage() {
     for (let i = 0; i < floorGlowMats.length; i += 1) {
       const mat = floorGlowMats[i];
       if (mat) {
+        mat.color.copy(currentAccentColor);
         mat.opacity = floorGlowOpacity;
       }
     }
@@ -433,7 +574,10 @@ export default function IsometricStage() {
       }
     }
 
-    const targetGlowIntensity = glowRef.current * (isHovered ? 1.3 : 1.0);
+    const targetGlowIntensity =
+      glowRef.current *
+      THREE.MathUtils.lerp(0.85, 1.35, darkBlend) *
+      (isHovered ? 1.3 : 1.0);
     if (glowLight1Ref.current) {
       glowLight1Ref.current.color.copy(currentAccentColor);
       glowLight1Ref.current.intensity = THREE.MathUtils.lerp(
@@ -604,7 +748,8 @@ export default function IsometricStage() {
       >
         <planeGeometry args={[60, 60]} />
         <meshStandardMaterial
-          color="#E8EEF5"
+          ref={floorMatRef}
+          color="#E2E8F0"
           roughness={0.9}
           metalness={0.02}
           roughnessMap={floorMicroTexture}
@@ -615,14 +760,15 @@ export default function IsometricStage() {
 
       {/* Architectural Tile Grid */}
       <Grid
+        ref={gridMeshRef}
         position={[0, 0.004, 0]}
         args={[40, 40]}
         cellSize={1}
         cellThickness={0.6}
-        cellColor="#d5dde8"
+        cellColor="#cbd5e1"
         sectionSize={4}
         sectionThickness={1.0}
-        sectionColor="#cbd5e1"
+        sectionColor="#94a3b8"
         fadeDistance={22}
         fadeStrength={1.6}
         infiniteGrid
@@ -654,9 +800,9 @@ export default function IsometricStage() {
               <meshBasicMaterial
                 ref={floorGlowMat1Ref}
                 map={radialGlowTexture}
-                color="#ffffff"
+                color={LIGHT_ACCENT_COLOR}
                 transparent
-                opacity={0.75}
+                opacity={0.42}
                 depthWrite={false}
               />
             </mesh>
@@ -670,9 +816,9 @@ export default function IsometricStage() {
               <meshBasicMaterial
                 ref={floorGlowMat2Ref}
                 map={radialGlowTexture}
-                color="#ffffff"
+                color={LIGHT_ACCENT_COLOR}
                 transparent
-                opacity={0.75}
+                opacity={0.42}
                 depthWrite={false}
               />
             </mesh>
@@ -686,9 +832,9 @@ export default function IsometricStage() {
               <meshBasicMaterial
                 ref={floorGlowMat4Ref}
                 map={radialGlowTexture}
-                color="#ffffff"
+                color={LIGHT_ACCENT_COLOR}
                 transparent
-                opacity={0.75}
+                opacity={0.42}
                 depthWrite={false}
               />
             </mesh>
@@ -705,6 +851,7 @@ export default function IsometricStage() {
             receiveShadow
           >
             <meshPhysicalMaterial
+              ref={blockMat1Ref}
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
@@ -719,9 +866,9 @@ export default function IsometricStage() {
             <boxGeometry args={[1.92, 0.035, 1.22]} />
             <meshStandardMaterial
               ref={stripMat1Ref}
-              color={DEFAULT_ACCENT_COLOR}
-              emissive={DEFAULT_ACCENT_COLOR}
-              emissiveIntensity={1.55}
+              color={LIGHT_ACCENT_COLOR}
+              emissive={LIGHT_ACCENT_COLOR}
+              emissiveIntensity={1.25}
               roughness={0.25}
               toneMapped={false}
             />
@@ -729,7 +876,7 @@ export default function IsometricStage() {
           <pointLight
             ref={glowLight1Ref}
             position={[0, -0.26, 0]}
-            color={DEFAULT_ACCENT_COLOR}
+            color={LIGHT_ACCENT_COLOR}
             intensity={0.8}
             distance={4}
             decay={2}
@@ -746,6 +893,7 @@ export default function IsometricStage() {
             receiveShadow
           >
             <meshPhysicalMaterial
+              ref={blockMat2Ref}
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
@@ -760,9 +908,9 @@ export default function IsometricStage() {
             <boxGeometry args={[1.08, 0.035, 1.08]} />
             <meshStandardMaterial
               ref={stripMat2Ref}
-              color={DEFAULT_ACCENT_COLOR}
-              emissive={DEFAULT_ACCENT_COLOR}
-              emissiveIntensity={1.55}
+              color={LIGHT_ACCENT_COLOR}
+              emissive={LIGHT_ACCENT_COLOR}
+              emissiveIntensity={1.25}
               roughness={0.25}
               toneMapped={false}
             />
@@ -770,7 +918,7 @@ export default function IsometricStage() {
           <pointLight
             ref={glowLight2Ref}
             position={[0, -0.5, 0]}
-            color={DEFAULT_ACCENT_COLOR}
+            color={LIGHT_ACCENT_COLOR}
             intensity={0.8}
             distance={4}
             decay={2}
@@ -787,6 +935,7 @@ export default function IsometricStage() {
             receiveShadow
           >
             <meshPhysicalMaterial
+              ref={blockMat3Ref}
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
@@ -809,6 +958,7 @@ export default function IsometricStage() {
             receiveShadow
           >
             <meshPhysicalMaterial
+              ref={blockMat4Ref}
               color="#FFFFFF"
               roughness={0.42}
               metalness={0.04}
@@ -823,9 +973,9 @@ export default function IsometricStage() {
             <boxGeometry args={[0.9, 0.035, 1.12]} />
             <meshStandardMaterial
               ref={stripMat4Ref}
-              color={DEFAULT_ACCENT_COLOR}
-              emissive={DEFAULT_ACCENT_COLOR}
-              emissiveIntensity={1.55}
+              color={LIGHT_ACCENT_COLOR}
+              emissive={LIGHT_ACCENT_COLOR}
+              emissiveIntensity={1.25}
               roughness={0.25}
               toneMapped={false}
             />
@@ -835,9 +985,10 @@ export default function IsometricStage() {
         {/* Closed Curved Brushed-Silver Physical Track */}
         <mesh geometry={tubeGeometry} castShadow receiveShadow>
           <meshStandardMaterial
-            color="#cbd5e1"
-            metalness={0.65}
-            roughness={0.28}
+            ref={trackMatRef}
+            color="#94A3B8"
+            metalness={0.55}
+            roughness={0.32}
             roughnessMap={brushedMetalTexture}
           />
         </mesh>
@@ -848,11 +999,12 @@ export default function IsometricStage() {
             <mesh rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
               <cylinderGeometry args={[DISC_RADIUS, DISC_RADIUS, 0.075, 48]} />
               <meshPhysicalMaterial
-                color="#F6D88C"
-                metalness={0.68}
-                roughness={0.2}
-                emissive="#8a6d28"
-                emissiveIntensity={0.12}
+                ref={discMatRef}
+                color="#D9A84E"
+                metalness={0.78}
+                roughness={0.22}
+                emissive="#5c4314"
+                emissiveIntensity={0.06}
                 roughnessMap={brushedMetalTexture}
                 clearcoat={0.6}
                 clearcoatRoughness={0.14}

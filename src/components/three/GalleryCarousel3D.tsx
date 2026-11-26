@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
+import { useTheme } from "@/context/ThemeContext";
+import { scrollState } from "@/lib/scrollState";
 import type { GalleryItem } from "@/data/portfolio";
+
+const LIGHT_FRAME_COLOR = new THREE.Color("#ffffff");
+const DARK_FRAME_COLOR = new THREE.Color("#1E293B");
+const LIGHT_PLACEHOLDER_COLOR = new THREE.Color("#e2e8f0");
+const DARK_PLACEHOLDER_COLOR = new THREE.Color("#1E293B");
 
 export interface StepCommand {
   delta: number;
@@ -79,6 +86,8 @@ function CarouselRig({
 }: CarouselRigProps) {
   const carouselGroupRef = useRef<THREE.Group>(null);
   const panelRefs = useRef<(THREE.Group | null)[]>([]);
+  const frameMatRefs = useRef<(THREE.MeshStandardMaterial | null)[]>([]);
+  const placeholderMatRefs = useRef<(THREE.MeshStandardMaterial | null)[]>([]);
   const currentRotationRef = useRef(0);
   const hoveredIndexRef = useRef<number | null>(null);
   const lastReportedIndexRef = useRef(0);
@@ -86,8 +95,13 @@ function CarouselRig({
 
   const [textures, setTextures] = useState<Record<string, THREE.Texture>>({});
 
+  const { theme } = useTheme();
   const { viewport, gl, invalidate } = useThree();
   const isMobile = viewport.width < 6;
+
+  useEffect(() => {
+    invalidate();
+  }, [theme, invalidate]);
 
   const count = items.length;
   const angleStep = (Math.PI * 2) / count;
@@ -192,7 +206,35 @@ function CarouselRig({
     const rotDamp = 1 - Math.exp(-8.5 * safeDelta);
     const hoverDamp = 1 - Math.exp(-10 * safeDelta);
     const camDamp = 1 - Math.exp(-6 * safeDelta);
+    const themeDamp = 1 - Math.exp(-6 * safeDelta);
     const elapsed = state.clock.getElapsedTime();
+    const isDark = scrollState.isDark;
+    const targetFrameColor = isDark ? DARK_FRAME_COLOR : LIGHT_FRAME_COLOR;
+    const targetPlaceholderColor = isDark
+      ? DARK_PLACEHOLDER_COLOR
+      : LIGHT_PLACEHOLDER_COLOR;
+
+    let needsThemeFrame = false;
+    for (let i = 0; i < count; i += 1) {
+      const frameMat = frameMatRefs.current[i];
+      if (frameMat) {
+        frameMat.color.lerp(targetFrameColor, themeDamp);
+        if (
+          Math.abs(frameMat.color.r - targetFrameColor.r) > 0.002 ||
+          Math.abs(frameMat.color.g - targetFrameColor.g) > 0.002 ||
+          Math.abs(frameMat.color.b - targetFrameColor.b) > 0.002
+        ) {
+          needsThemeFrame = true;
+        }
+      }
+      const placeholderMat = placeholderMatRefs.current[i];
+      if (placeholderMat) {
+        placeholderMat.color.lerp(targetPlaceholderColor, themeDamp);
+      }
+    }
+    if (needsThemeFrame) {
+      invalidate();
+    }
 
     // Responsive camera Z distance so mobile frames 1 center card + peeking edges
     const desiredCamZ = isMobile ? 5.65 : 8.45;
@@ -294,9 +336,12 @@ function CarouselRig({
             position={[Math.sin(angle) * radius, 0, Math.cos(angle) * radius]}
             rotation={[0, angle, 0]}
           >
-            {/* Clean Light Mode exhibition backing frame */}
+            {/* Exhibition backing frame (smoothly transitions between Light and Dark) */}
             <mesh geometry={bundle.frameGeo} position={[0, 0, -0.018]}>
               <meshStandardMaterial
+                ref={(el) => {
+                  frameMatRefs.current[index] = el;
+                }}
                 color="#ffffff"
                 roughness={0.55}
                 metalness={0.04}
@@ -319,6 +364,9 @@ function CarouselRig({
                 />
               ) : (
                 <meshStandardMaterial
+                  ref={(el) => {
+                    placeholderMatRefs.current[index] = el;
+                  }}
                   color="#e2e8f0"
                   roughness={0.8}
                   side={THREE.DoubleSide}

@@ -1,10 +1,20 @@
 "use client";
 
-import { Suspense, useSyncExternalStore } from "react";
+import { Suspense, useRef, useSyncExternalStore } from "react";
 import * as THREE from "three";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
+import { scrollState } from "@/lib/scrollState";
 import IsometricStage from "./IsometricStage";
+
+const LIGHT_BG_COLOR = new THREE.Color("#F1F5F9");
+const DARK_BG_COLOR = new THREE.Color("#0B1120");
+const LIGHT_HEMI_SKY = new THREE.Color("#ffffff");
+const DARK_HEMI_SKY = new THREE.Color("#94a3b8");
+const LIGHT_HEMI_GROUND = new THREE.Color("#cbd5e1");
+const DARK_HEMI_GROUND = new THREE.Color("#0f172a");
+const LIGHT_DIR_COLOR = new THREE.Color("#fff9f2");
+const DARK_DIR_COLOR = new THREE.Color("#E2E8F0");
 
 function subscribeMobile(callback: () => void): () => void {
   if (typeof window === "undefined") {
@@ -26,13 +36,73 @@ function getMobileServerSnapshot(): boolean {
 }
 
 function SceneLighting() {
+  const ambientRef = useRef<THREE.AmbientLight>(null);
+  const hemiRef = useRef<THREE.HemisphereLight>(null);
+  const dirRef = useRef<THREE.DirectionalLight>(null);
+
+  useFrame((state, delta) => {
+    const isDark = scrollState.isDark;
+    const themeDamp = 1 - Math.exp(-5 * Math.min(delta, 0.1));
+    const targetBg = isDark ? DARK_BG_COLOR : LIGHT_BG_COLOR;
+
+    if (state.scene.background instanceof THREE.Color) {
+      state.scene.background.lerp(targetBg, themeDamp);
+    }
+    if (state.scene.fog instanceof THREE.Fog) {
+      state.scene.fog.color.lerp(targetBg, themeDamp);
+    }
+
+    state.gl.toneMappingExposure = THREE.MathUtils.lerp(
+      state.gl.toneMappingExposure,
+      isDark ? 0.95 : 0.85,
+      themeDamp
+    );
+
+    if (ambientRef.current) {
+      ambientRef.current.intensity = THREE.MathUtils.lerp(
+        ambientRef.current.intensity,
+        isDark ? 0.15 : 0.18,
+        themeDamp
+      );
+    }
+
+    if (hemiRef.current) {
+      hemiRef.current.intensity = THREE.MathUtils.lerp(
+        hemiRef.current.intensity,
+        isDark ? 0.2 : 0.28,
+        themeDamp
+      );
+      hemiRef.current.color.lerp(
+        isDark ? DARK_HEMI_SKY : LIGHT_HEMI_SKY,
+        themeDamp
+      );
+      hemiRef.current.groundColor.lerp(
+        isDark ? DARK_HEMI_GROUND : LIGHT_HEMI_GROUND,
+        themeDamp
+      );
+    }
+
+    if (dirRef.current) {
+      dirRef.current.intensity = THREE.MathUtils.lerp(
+        dirRef.current.intensity,
+        isDark ? 1.45 : 1.9,
+        themeDamp
+      );
+      dirRef.current.color.lerp(
+        isDark ? DARK_DIR_COLOR : LIGHT_DIR_COLOR,
+        themeDamp
+      );
+    }
+  });
+
   return (
     <>
-      <ambientLight intensity={0.22} color="#ffffff" />
-      <hemisphereLight args={["#ffffff", "#cbd5e1", 0.32]} />
+      <ambientLight ref={ambientRef} intensity={0.18} color="#ffffff" />
+      <hemisphereLight ref={hemiRef} args={["#ffffff", "#cbd5e1", 0.28]} />
       <directionalLight
+        ref={dirRef}
         position={[10, 16, 6]}
-        intensity={2.1}
+        intensity={1.9}
         color="#fff9f2"
         castShadow
         shadow-mapSize={[1024, 1024]}
@@ -66,21 +136,21 @@ export default function SceneCanvas() {
         antialias: true,
         powerPreference: "high-performance",
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 0.98,
+        toneMappingExposure: 0.85,
       }}
       className="pointer-events-none"
     >
-      <color attach="background" args={["#F8FAFC"]} />
-      <fog attach="fog" args={["#F8FAFC", 15, 34]} />
+      <color attach="background" args={["#F1F5F9"]} />
+      <fog attach="fog" args={["#F1F5F9", 15, 34]} />
 
       <SceneLighting />
 
       <Suspense fallback={null}>
         <Environment resolution={128} frames={1}>
-          {/* Bright studio dome wrapper so metallic surfaces never reflect black void */}
+          {/* Muted studio dome wrapper so metallic surfaces never reflect harsh glare */}
           <mesh scale={50}>
             <sphereGeometry />
-            <meshBasicMaterial color="#F8FAFC" side={THREE.BackSide} />
+            <meshBasicMaterial color="#CBD5E1" side={THREE.BackSide} />
           </mesh>
           {/* Large warm-neutral overhead studio softbox */}
           <Lightformer
