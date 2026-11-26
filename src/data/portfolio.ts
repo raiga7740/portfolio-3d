@@ -65,7 +65,7 @@ export const PORTFOLIO_DATA = {
       tags: ["Laravel", "MySQL", "Tailwind CSS"],
       image: "/images/projects/project-4.webp",
       liveDemoUrl: "https://finora.gt.tc/",
-      githubUrl: "https://github.com",
+      githubUrl: "https://github.com/raiga7740",
     },
     {
       id: "jplearn",
@@ -78,7 +78,7 @@ export const PORTFOLIO_DATA = {
       tags: ["Laravel", "JavaScript", "Web Speech API"],
       image: "/images/projects/jplearn.webp",
       liveDemoUrl: "https://jplearn.ct.ws/",
-      githubUrl: "https://github.com",
+      githubUrl: "https://github.com/raiga7740",
     },
     {
       id: "saung-sunda",
@@ -91,7 +91,7 @@ export const PORTFOLIO_DATA = {
       tags: ["HTML5", "Tailwind CSS", "JavaScript"],
       image: "/images/projects/saungsunda.webp",
       liveDemoUrl: "https://saungsunda.gt.tc/",
-      githubUrl: "https://github.com",
+      githubUrl: "https://github.com/raiga7740",
     },
     {
       id: "slekbew",
@@ -104,7 +104,7 @@ export const PORTFOLIO_DATA = {
       tags: ["JavaScript", "Tailwind CSS", "UI/UX Design"],
       image: "/images/projects/slekbew.webp",
       liveDemoUrl: "https://www.4kslebew.my.id/",
-      githubUrl: "https://github.com",
+      githubUrl: "https://github.com/raiga7740",
     },
     {
       id: "discord-community-hub",
@@ -115,8 +115,8 @@ export const PORTFOLIO_DATA = {
       description:
         "Website komunitas yang terintegrasi dengan bot Node.js untuk menampilkan daftar anggota dan hierarki role secara real-time.",
       tags: ["Node.js", "JavaScript", "Discord API"],
-      liveDemoUrl: "https://github.com",
-      githubUrl: "https://github.com",
+      liveDemoUrl: "https://github.com/raiga7740",
+      githubUrl: "https://github.com/raiga7740",
     },
   ] satisfies ProjectItem[],
   gallerySection: {
@@ -231,11 +231,11 @@ export const PORTFOLIO_DATA = {
       "Terbuka untuk proyek freelance, pembuatan MVP, maupun kolaborasi pengembangan web.",
     primaryButton: {
       label: "Kirim Email",
-      href: "mailto:[EMAIL KAMU]",
+      href: "mailto:gayuhraiiguna@gmail.com",
     },
     socials: [
-      { label: "GitHub", href: "[URL GITHUB]" },
-      { label: "LinkedIn", href: "[URL LINKEDIN]" },
+      { label: "GitHub", href: "https://github.com/raiga7740" },
+      { label: "LinkedIn", href: "https://www.linkedin.com/in/gayuh-raiguna-0a2a112aa/" },
     ],
   },
   footer: "© 2026 Raiga. Built with Next.js & Three.js.",
