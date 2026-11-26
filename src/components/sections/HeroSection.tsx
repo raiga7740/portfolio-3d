@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ArrowDownRight, Download, Mail } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
 
 interface HeroSectionProps {
@@ -11,6 +12,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onNavigate }: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -56,7 +58,7 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
           >
             <span className="h-2 w-2 rounded-full bg-teal-600 animate-pulse" />
             <span className="font-mono text-xs uppercase tracking-wider text-[#64748B]">
-              {PORTFOLIO_DATA.hero.status}
+              {PORTFOLIO_DATA.hero.status[lang]}
             </span>
           </div>
 
@@ -64,14 +66,14 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
             data-hero-enter
             className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-[#0F172A] sm:text-5xl lg:text-[3.35rem]"
           >
-            {PORTFOLIO_DATA.hero.headline}
+            {PORTFOLIO_DATA.hero.headline[lang]}
           </h1>
 
           <p
             data-hero-enter
             className="mt-6 max-w-xl text-base leading-relaxed text-[#64748B] sm:text-lg"
           >
-            {PORTFOLIO_DATA.hero.subheadline}
+            {PORTFOLIO_DATA.hero.subheadline[lang]}
           </p>
 
           <div
@@ -85,7 +87,7 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
               }
               className="inline-flex items-center gap-2 rounded-full bg-[#0F172A] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md"
             >
-              <span>{PORTFOLIO_DATA.hero.primaryCta.label}</span>
+              <span>{PORTFOLIO_DATA.hero.primaryCta.label[lang]}</span>
               <ArrowDownRight className="h-4 w-4" />
             </a>
 
@@ -97,7 +99,7 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
               className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/65 px-7 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/90"
             >
               <Mail className="h-4 w-4 text-[#64748B]" />
-              <span>{PORTFOLIO_DATA.hero.secondaryCta.label}</span>
+              <span>{PORTFOLIO_DATA.hero.secondaryCta.label[lang]}</span>
             </a>
 
             <a
@@ -106,7 +108,7 @@ export default function HeroSection({ onNavigate }: HeroSectionProps) {
               className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/65 px-6 py-3.5 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/90"
             >
               <Download className="h-4 w-4 text-[#64748B]" />
-              <span>{PORTFOLIO_DATA.hero.cvCta.label}</span>
+              <span>{PORTFOLIO_DATA.hero.cvCta.label[lang]}</span>
             </a>
           </div>
         </div>

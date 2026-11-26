@@ -5,6 +5,7 @@ import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight, Code2, Layers } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
 import { scrollState } from "@/lib/scrollState";
 
@@ -12,6 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function ProjectsSection() {
   const sectionRef = useRef<HTMLElement>(null);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -55,15 +57,15 @@ export default function ProjectsSection() {
         <div className="mb-14 max-w-xl pointer-events-auto">
           <div className="mb-3 flex items-center gap-3">
             <span className="font-mono text-xs uppercase tracking-widest text-[#64748B]">
-              {PORTFOLIO_DATA.projectsSection.eyebrow}
+              {PORTFOLIO_DATA.projectsSection.eyebrow[lang]}
             </span>
             <span className="h-px w-10 bg-slate-300" />
           </div>
           <h2 className="font-display text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
-            {PORTFOLIO_DATA.projectsSection.title}
+            {PORTFOLIO_DATA.projectsSection.title[lang]}
           </h2>
           <p className="mt-3 text-base leading-relaxed text-[#64748B]">
-            {PORTFOLIO_DATA.projectsSection.subtitle}
+            {PORTFOLIO_DATA.projectsSection.subtitle[lang]}
           </p>
         </div>
 
@@ -110,7 +112,7 @@ export default function ProjectsSection() {
                           <Layers className="h-5 w-5 text-indigo-600" />
                         </div>
                         <span className="font-mono text-xs font-medium uppercase tracking-widest text-[#64748B]">
-                          {project.category}
+                          {project.category[lang]}
                         </span>
                         <span className="font-display text-lg font-semibold text-[#0F172A]">
                           {project.title}
@@ -123,7 +125,7 @@ export default function ProjectsSection() {
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <span className="font-mono text-xs font-medium uppercase tracking-wider text-blue-600">
-                      {project.category}
+                      {project.category[lang]}
                     </span>
                     <h3 className="mt-1 font-display text-2xl font-bold tracking-tight text-[#0F172A]">
                       {project.title}
@@ -135,11 +137,11 @@ export default function ProjectsSection() {
                 </div>
 
                 <p className="mb-2 text-sm font-medium text-[#0F172A]/80">
-                  {project.subtitle}
+                  {project.subtitle[lang]}
                 </p>
 
                 <p className="mb-6 text-sm leading-relaxed text-[#64748B] sm:text-base">
-                  {project.description}
+                  {project.description[lang]}
                 </p>
 
                 {/* Tech Tags */}
@@ -162,7 +164,7 @@ export default function ProjectsSection() {
                     rel="noopener noreferrer"
                     className="group/link inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F172A] transition-colors hover:text-blue-600"
                   >
-                    <span>Live Demo</span>
+                    <span>{PORTFOLIO_DATA.projectsSection.liveDemoLabel[lang]}</span>
                     <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
                   </a>
 
@@ -173,7 +175,7 @@ export default function ProjectsSection() {
                     className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#64748B] transition-colors hover:text-[#0F172A]"
                   >
                     <Code2 className="h-4 w-4" />
-                    <span>GitHub</span>
+                    <span>{PORTFOLIO_DATA.projectsSection.githubLabel[lang]}</span>
                   </a>
                 </div>
               </article>

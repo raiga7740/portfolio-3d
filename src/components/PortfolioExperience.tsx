@@ -9,6 +9,7 @@ import {
   resetScrollState,
   scrollState,
 } from "@/lib/scrollState";
+import { LanguageProvider } from "@/context/LanguageContext";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import ProjectsSection from "@/components/sections/ProjectsSection";
@@ -295,15 +296,17 @@ export default function PortfolioExperience() {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative z-10 pointer-events-none">
-      <Navbar onNavigate={handleNavigate} />
-      <main>
-        <HeroSection onNavigate={handleNavigate} />
-        <ProjectsSection />
-        <GallerySection />
-        <AboutSection />
-        <ContactFooterSection />
-      </main>
-    </div>
+    <LanguageProvider>
+      <div ref={containerRef} className="relative z-10 pointer-events-none">
+        <Navbar onNavigate={handleNavigate} />
+        <main>
+          <HeroSection onNavigate={handleNavigate} />
+          <ProjectsSection />
+          <GallerySection />
+          <AboutSection />
+          <ContactFooterSection />
+        </main>
+      </div>
+    </LanguageProvider>
   );
 }

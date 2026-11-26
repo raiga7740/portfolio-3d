@@ -4,12 +4,14 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Download } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import { PORTFOLIO_DATA } from "@/data/portfolio";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -49,22 +51,22 @@ export default function AboutSection() {
         >
           <div className="mb-3 flex items-center gap-3">
             <span className="font-mono text-xs uppercase tracking-widest text-[#64748B]">
-              {PORTFOLIO_DATA.about.eyebrow}
+              {PORTFOLIO_DATA.about.eyebrow[lang]}
             </span>
             <span className="h-px w-10 bg-slate-300" />
           </div>
 
           <h2 className="font-display text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
-            {PORTFOLIO_DATA.about.title}
+            {PORTFOLIO_DATA.about.title[lang]}
           </h2>
 
           <p className="mt-6 text-base leading-relaxed text-[#64748B] sm:text-lg">
-            {PORTFOLIO_DATA.about.bio}
+            {PORTFOLIO_DATA.about.bio[lang]}
           </p>
 
           <div className="mt-10 border-t border-slate-200/70 pt-7">
             <h3 className="mb-4 font-mono text-xs font-semibold uppercase tracking-widest text-[#64748B]">
-              {PORTFOLIO_DATA.about.stackTitle}
+              {PORTFOLIO_DATA.about.stackTitle[lang]}
             </h3>
 
             <div data-tech-stack className="flex flex-wrap gap-2.5">
@@ -87,7 +89,7 @@ export default function AboutSection() {
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 px-6 py-3 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
               >
                 <Download className="h-4 w-4 text-[#64748B]" />
-                <span>{PORTFOLIO_DATA.about.cvLabel}</span>
+                <span>{PORTFOLIO_DATA.about.cvLabel[lang]}</span>
               </a>
             </div>
           </div>
