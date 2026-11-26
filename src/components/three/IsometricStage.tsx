@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Grid, RoundedBox } from "@react-three/drei";
+import { ContactShadows, Grid, RoundedBox } from "@react-three/drei";
 import {
   DEFAULT_ACCENT_COLOR,
   PROJECT_ACCENT_COLORS,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/scrollState";
 
 const DISC_RADIUS = 0.26;
+const HERO_STAGE_OFFSET_X = 1.65;
 
 interface BlockChoreographyConfig {
   baseX: number;
@@ -75,6 +76,136 @@ const BLOCK_CONFIGS: BlockChoreographyConfig[] = [
   },
 ];
 
+function createRadialGlowTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+
+  const center = size / 2;
+  const gradient = ctx.createRadialGradient(
+    center,
+    center,
+    0,
+    center,
+    center,
+    center
+  );
+  gradient.addColorStop(0, "rgba(20, 184, 166, 0.55)");
+  gradient.addColorStop(0.45, "rgba(20, 184, 166, 0.24)");
+  gradient.addColorStop(1, "rgba(20, 184, 166, 0)");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
+ * Generates a lightweight deterministic plaster/ceramic micro-grain texture
+ * for subtle roughness and bump variation without external image assets.
+ */
+function createPlasterMicroTexture(
+  repeatX: number,
+  repeatY: number
+): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+
+  const imgData = ctx.createImageData(size, size);
+  const data = imgData.data;
+
+  // Deterministic PRNG for consistent matte grain without runtime flicker
+  let seed = 1337;
+  const nextRand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  for (let i = 0; i < data.length; i += 4) {
+    const grain = Math.floor(220 + nextRand() * 35);
+    data[i] = grain;
+    data[i + 1] = grain;
+    data[i + 2] = grain;
+    data[i + 3] = 255;
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
+ * Generates fine directional brushed-metal streaks for metallic roughness variation.
+ */
+function createBrushedMetalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+
+  ctx.fillStyle = "rgb(225, 225, 225)";
+  ctx.fillRect(0, 0, size, size);
+
+  let seed = 4242;
+  const nextRand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  for (let y = 0; y < size; y += 1) {
+    const v = Math.floor(192 + nextRand() * 63);
+    ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
+    ctx.fillRect(0, y, size, 1);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(3, 3);
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 export default function IsometricStage() {
   const stageGroupRef = useRef<THREE.Group>(null);
   const block1Ref = useRef<THREE.Group>(null);
@@ -82,8 +213,16 @@ export default function IsometricStage() {
   const block3Ref = useRef<THREE.Group>(null);
   const block4Ref = useRef<THREE.Group>(null);
 
-  const glowMat1Ref = useRef<THREE.MeshBasicMaterial>(null);
-  const glowMat2Ref = useRef<THREE.MeshBasicMaterial>(null);
+  const floorGlow1Ref = useRef<THREE.Mesh>(null);
+  const floorGlow2Ref = useRef<THREE.Mesh>(null);
+  const floorGlow4Ref = useRef<THREE.Mesh>(null);
+  const floorGlowMat1Ref = useRef<THREE.MeshBasicMaterial>(null);
+  const floorGlowMat2Ref = useRef<THREE.MeshBasicMaterial>(null);
+  const floorGlowMat4Ref = useRef<THREE.MeshBasicMaterial>(null);
+
+  const stripMat1Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const stripMat2Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const stripMat4Ref = useRef<THREE.MeshStandardMaterial>(null);
   const glowLight1Ref = useRef<THREE.PointLight>(null);
   const glowLight2Ref = useRef<THREE.PointLight>(null);
 
@@ -128,21 +267,52 @@ export default function IsometricStage() {
     currentAccentColor: new THREE.Color(DEFAULT_ACCENT_COLOR),
   });
 
-  // Closed curved track weaving cleanly around the 4 blocks
+  // Procedural textures stored in useMemo and disposed cleanly on unmount
+  const {
+    radialGlowTexture,
+    floorMicroTexture,
+    blockMicroTexture,
+    brushedMetalTexture,
+  } = useMemo(
+    () => ({
+      radialGlowTexture: createRadialGlowTexture(),
+      floorMicroTexture: createPlasterMicroTexture(14, 14),
+      blockMicroTexture: createPlasterMicroTexture(3, 3),
+      brushedMetalTexture: createBrushedMetalTexture(),
+    }),
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      radialGlowTexture?.dispose();
+      floorMicroTexture?.dispose();
+      blockMicroTexture?.dispose();
+      brushedMetalTexture?.dispose();
+    };
+  }, [
+    radialGlowTexture,
+    floorMicroTexture,
+    blockMicroTexture,
+    brushedMetalTexture,
+  ]);
+
+  // Closed curved track with >= 0.4-unit safe clearance around all 4 architectural blocks
   const { tubeGeometry, curve, curveLength } = useMemo(() => {
     const points = [
-      new THREE.Vector3(0.0, 0.04, 0.22),
-      new THREE.Vector3(2.55, 0.04, 0.22),
-      new THREE.Vector3(2.65, 0.04, -2.1),
-      new THREE.Vector3(-0.45, 0.04, -2.45),
-      new THREE.Vector3(-2.55, 0.04, -2.05),
-      new THREE.Vector3(-2.55, 0.04, 0.05),
-      new THREE.Vector3(-2.35, 0.04, 2.25),
-      new THREE.Vector3(0.0, 0.04, 2.35),
-      new THREE.Vector3(0.0, 0.04, 1.15),
+      new THREE.Vector3(0.02, 0.055, 0.22),
+      new THREE.Vector3(2.75, 0.055, 0.22),
+      new THREE.Vector3(2.8, 0.055, -2.2),
+      new THREE.Vector3(-0.45, 0.055, -2.6),
+      new THREE.Vector3(-2.75, 0.055, -2.25),
+      new THREE.Vector3(-2.9, 0.055, 0.05),
+      new THREE.Vector3(-2.92, 0.055, 1.3),
+      new THREE.Vector3(-2.55, 0.055, 2.55),
+      new THREE.Vector3(-0.02, 0.055, 2.55),
+      new THREE.Vector3(-0.02, 0.055, 1.15),
     ];
     const spline = new THREE.CatmullRomCurve3(points, true, "centripetal");
-    const geometry = new THREE.TubeGeometry(spline, 180, 0.032, 12, true);
+    const geometry = new THREE.TubeGeometry(spline, 200, 0.055, 16, true);
     return {
       tubeGeometry: geometry,
       curve: spline,
@@ -226,13 +396,43 @@ export default function IsometricStage() {
     targetColor.set(targetHex);
     currentAccentColor.lerp(targetColor, colorDamp);
 
-    // Update teal underglow materials and short-range bounce point lights
-    if (glowMat1Ref.current) {
-      glowMat1Ref.current.color.copy(currentAccentColor);
+    // Update radial floor glow opacity, bloom-ready emissive strips (> 1.1), and bounce point lights
+    const floorGlowOpacity = THREE.MathUtils.clamp(
+      glowRef.current * (isHovered ? 1.05 : 0.85),
+      0.25,
+      1.0
+    );
+    const stripEmissiveIntensity = Math.max(
+      1.15,
+      glowRef.current * (isHovered ? 1.95 : 1.55)
+    );
+
+    const floorGlowMats = [
+      floorGlowMat1Ref.current,
+      floorGlowMat2Ref.current,
+      floorGlowMat4Ref.current,
+    ];
+    for (let i = 0; i < floorGlowMats.length; i += 1) {
+      const mat = floorGlowMats[i];
+      if (mat) {
+        mat.opacity = floorGlowOpacity;
+      }
     }
-    if (glowMat2Ref.current) {
-      glowMat2Ref.current.color.copy(currentAccentColor);
+
+    const stripMats = [
+      stripMat1Ref.current,
+      stripMat2Ref.current,
+      stripMat4Ref.current,
+    ];
+    for (let i = 0; i < stripMats.length; i += 1) {
+      const mat = stripMats[i];
+      if (mat) {
+        mat.color.copy(currentAccentColor);
+        mat.emissive.copy(currentAccentColor);
+        mat.emissiveIntensity = stripEmissiveIntensity;
+      }
     }
+
     const targetGlowIntensity = glowRef.current * (isHovered ? 1.3 : 1.0);
     if (glowLight1Ref.current) {
       glowLight1Ref.current.color.copy(currentAccentColor);
@@ -277,6 +477,29 @@ export default function IsometricStage() {
       block.position.z = THREE.MathUtils.lerp(block.position.z, targetZ, damp);
     }
 
+    // Keep floor radial underglow planes pinned on the floor beneath Blocks 1, 2, and 4
+    if (floorGlow1Ref.current && block1Ref.current) {
+      floorGlow1Ref.current.position.set(
+        block1Ref.current.position.x,
+        0.015,
+        block1Ref.current.position.z
+      );
+    }
+    if (floorGlow2Ref.current && block2Ref.current) {
+      floorGlow2Ref.current.position.set(
+        block2Ref.current.position.x,
+        0.015,
+        block2Ref.current.position.z
+      );
+    }
+    if (floorGlow4Ref.current && block4Ref.current) {
+      floorGlow4Ref.current.position.set(
+        block4Ref.current.position.x,
+        0.015,
+        block4Ref.current.position.z
+      );
+    }
+
     // Kinetic loop: blend smoothly between track rolling (orbLift=0) and hovering orbit (orbLift=1)
     const speedMultiplier = isHovered ? 1.25 : 1.0;
     const deltaProgress =
@@ -286,7 +509,7 @@ export default function IsometricStage() {
     curve.getPointAt(progressRef.current, trackPosVec);
     curve.getTangentAt(progressRef.current, tangentVec).normalize();
 
-    trackPosVec.y += DISC_RADIUS + 0.02;
+    trackPosVec.y += DISC_RADIUS + 0.04;
     hoverPosVec.set(0, 2.05 + Math.sin(elapsed * 1.6) * 0.14, 0);
     blendedPosVec.copy(trackPosVec).lerp(hoverPosVec, orbLiftRef.current);
 
@@ -310,10 +533,14 @@ export default function IsometricStage() {
         (distanceTraveled / DISC_RADIUS) * (1 - orbLiftRef.current);
     }
 
-    // Stage offset, rotation, and mobile scaling
+    // Stage offset (shift slightly right on Hero desktop for safe text negative space), rotation, and mobile scaling
+    const heroOffsetX = isMobile
+      ? 0
+      : Math.max(0, 1 - scrollState.sectionIndex) * HERO_STAGE_OFFSET_X;
+
     if (stageGroupRef.current) {
       desiredStagePosVec.set(
-        isMobile ? 0 : scrollState.stageOffset.x,
+        isMobile ? 0 : scrollState.stageOffset.x + heroOffsetX,
         scrollState.stageOffset.y,
         isMobile ? 0 : scrollState.stageOffset.z
       );
@@ -369,7 +596,7 @@ export default function IsometricStage() {
 
   return (
     <>
-      {/* Continuous Matte Architectural Floor */}
+      {/* Continuous Matte Plaster Floor for crisp contrast against white ceramic blocks */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, 0]}
@@ -377,9 +604,12 @@ export default function IsometricStage() {
       >
         <planeGeometry args={[60, 60]} />
         <meshStandardMaterial
-          color="#f1f5f9"
-          roughness={0.85}
+          color="#E8EEF5"
+          roughness={0.9}
           metalness={0.02}
+          roughnessMap={floorMicroTexture}
+          bumpMap={floorMicroTexture}
+          bumpScale={0.006}
         />
       </mesh>
 
@@ -388,8 +618,8 @@ export default function IsometricStage() {
         position={[0, 0.004, 0]}
         args={[40, 40]}
         cellSize={1}
-        cellThickness={0.55}
-        cellColor="#e2e8f0"
+        cellThickness={0.6}
+        cellColor="#d5dde8"
         sectionSize={4}
         sectionThickness={1.0}
         sectionColor="#cbd5e1"
@@ -400,26 +630,99 @@ export default function IsometricStage() {
 
       {/* Scalable Isometric Architectural Stage */}
       <group ref={stageGroupRef}>
+        {/* Baked Soft Contact Shadows replacing heavy real-time N8AO */}
+        <ContactShadows
+          position={[0, 0.01, 0]}
+          opacity={0.22}
+          scale={14}
+          blur={2.2}
+          far={3}
+          frames={1}
+          resolution={256}
+          color="#334155"
+        />
+
+        {/* Procedural Teal Radial Floor Underglows (Light Mode Contrast Layer) */}
+        {radialGlowTexture && (
+          <>
+            <mesh
+              ref={floorGlow1Ref}
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[1.05, 0.015, -1.05]}
+            >
+              <planeGeometry args={[2.9, 2.2]} />
+              <meshBasicMaterial
+                ref={floorGlowMat1Ref}
+                map={radialGlowTexture}
+                color="#ffffff"
+                transparent
+                opacity={0.75}
+                depthWrite={false}
+              />
+            </mesh>
+
+            <mesh
+              ref={floorGlow2Ref}
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[-1.25, 0.015, 1.05]}
+            >
+              <planeGeometry args={[2.1, 2.1]} />
+              <meshBasicMaterial
+                ref={floorGlowMat2Ref}
+                map={radialGlowTexture}
+                color="#ffffff"
+                transparent
+                opacity={0.75}
+                depthWrite={false}
+              />
+            </mesh>
+
+            <mesh
+              ref={floorGlow4Ref}
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[-1.45, 0.015, -1.25]}
+            >
+              <planeGeometry args={[1.9, 2.15]} />
+              <meshBasicMaterial
+                ref={floorGlowMat4Ref}
+                map={radialGlowTexture}
+                color="#ffffff"
+                transparent
+                opacity={0.75}
+                depthWrite={false}
+              />
+            </mesh>
+          </>
+        )}
+
         {/* Block 1: Primary wide plinth with recessed teal underglow */}
         <group ref={block1Ref} position={[1.05, 0.34, -1.05]}>
           <RoundedBox
             args={[2.1, 0.42, 1.4]}
-            radius={0.06}
-            smoothness={4}
+            radius={0.08}
+            smoothness={6}
             castShadow
             receiveShadow
           >
-            <meshStandardMaterial
-              color="#f8fafc"
-              roughness={0.7}
-              metalness={0.03}
+            <meshPhysicalMaterial
+              color="#FFFFFF"
+              roughness={0.42}
+              metalness={0.04}
+              clearcoat={0.22}
+              clearcoatRoughness={0.25}
+              roughnessMap={blockMicroTexture}
+              bumpMap={blockMicroTexture}
+              bumpScale={0.006}
             />
           </RoundedBox>
           <mesh position={[0, -0.215, 0]}>
             <boxGeometry args={[1.92, 0.035, 1.22]} />
-            <meshBasicMaterial
-              ref={glowMat1Ref}
+            <meshStandardMaterial
+              ref={stripMat1Ref}
               color={DEFAULT_ACCENT_COLOR}
+              emissive={DEFAULT_ACCENT_COLOR}
+              emissiveIntensity={1.55}
+              roughness={0.25}
               toneMapped={false}
             />
           </mesh>
@@ -437,22 +740,30 @@ export default function IsometricStage() {
         <group ref={block2Ref} position={[-1.25, 0.58, 1.05]}>
           <RoundedBox
             args={[1.25, 0.92, 1.25]}
-            radius={0.06}
-            smoothness={4}
+            radius={0.08}
+            smoothness={6}
             castShadow
             receiveShadow
           >
-            <meshStandardMaterial
-              color="#f8fafc"
-              roughness={0.7}
-              metalness={0.03}
+            <meshPhysicalMaterial
+              color="#FFFFFF"
+              roughness={0.42}
+              metalness={0.04}
+              clearcoat={0.22}
+              clearcoatRoughness={0.25}
+              roughnessMap={blockMicroTexture}
+              bumpMap={blockMicroTexture}
+              bumpScale={0.006}
             />
           </RoundedBox>
           <mesh position={[0, -0.465, 0]}>
             <boxGeometry args={[1.08, 0.035, 1.08]} />
-            <meshBasicMaterial
-              ref={glowMat2Ref}
+            <meshStandardMaterial
+              ref={stripMat2Ref}
               color={DEFAULT_ACCENT_COLOR}
+              emissive={DEFAULT_ACCENT_COLOR}
+              emissiveIntensity={1.55}
+              roughness={0.25}
               toneMapped={false}
             />
           </mesh>
@@ -470,56 +781,82 @@ export default function IsometricStage() {
         <group ref={block3Ref} position={[1.35, 0.22, 1.35]}>
           <RoundedBox
             args={[1.55, 0.28, 1.1]}
-            radius={0.06}
-            smoothness={4}
+            radius={0.08}
+            smoothness={6}
             castShadow
             receiveShadow
           >
-            <meshStandardMaterial
-              color="#f8fafc"
-              roughness={0.7}
-              metalness={0.03}
+            <meshPhysicalMaterial
+              color="#FFFFFF"
+              roughness={0.42}
+              metalness={0.04}
+              clearcoat={0.22}
+              clearcoatRoughness={0.25}
+              roughnessMap={blockMicroTexture}
+              bumpMap={blockMicroTexture}
+              bumpScale={0.006}
             />
           </RoundedBox>
         </group>
 
-        {/* Block 4: Secondary architectural block */}
+        {/* Block 4: Secondary architectural block with recessed teal underglow */}
         <group ref={block4Ref} position={[-1.45, 0.38, -1.25]}>
           <RoundedBox
             args={[1.05, 0.56, 1.3]}
-            radius={0.06}
-            smoothness={4}
+            radius={0.08}
+            smoothness={6}
             castShadow
             receiveShadow
           >
-            <meshStandardMaterial
-              color="#f8fafc"
-              roughness={0.7}
-              metalness={0.03}
+            <meshPhysicalMaterial
+              color="#FFFFFF"
+              roughness={0.42}
+              metalness={0.04}
+              clearcoat={0.22}
+              clearcoatRoughness={0.25}
+              roughnessMap={blockMicroTexture}
+              bumpMap={blockMicroTexture}
+              bumpScale={0.006}
             />
           </RoundedBox>
+          <mesh position={[0, -0.285, 0]}>
+            <boxGeometry args={[0.9, 0.035, 1.12]} />
+            <meshStandardMaterial
+              ref={stripMat4Ref}
+              color={DEFAULT_ACCENT_COLOR}
+              emissive={DEFAULT_ACCENT_COLOR}
+              emissiveIntensity={1.55}
+              roughness={0.25}
+              toneMapped={false}
+            />
+          </mesh>
         </group>
 
-        {/* Closed Curved Physical Track */}
+        {/* Closed Curved Brushed-Silver Physical Track */}
         <mesh geometry={tubeGeometry} castShadow receiveShadow>
           <meshStandardMaterial
-            color="#e2e8f0"
-            roughness={0.45}
-            metalness={0.35}
+            color="#cbd5e1"
+            metalness={0.65}
+            roughness={0.28}
+            roughnessMap={brushedMetalTexture}
           />
         </mesh>
 
-        {/* Rolling / Hovering Champagne-Gold Metallic Disc */}
+        {/* Rolling / Hovering Brushed Champagne-Gold Metallic Disc */}
         <group ref={discCarrierRef}>
           <group ref={discSpinRef}>
             <mesh rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
               <cylinderGeometry args={[DISC_RADIUS, DISC_RADIUS, 0.075, 48]} />
               <meshPhysicalMaterial
-                color="#e5c17b"
-                metalness={0.9}
-                roughness={0.18}
-                clearcoat={0.4}
-                clearcoatRoughness={0.15}
+                color="#F6D88C"
+                metalness={0.68}
+                roughness={0.2}
+                emissive="#8a6d28"
+                emissiveIntensity={0.12}
+                roughnessMap={brushedMetalTexture}
+                clearcoat={0.6}
+                clearcoatRoughness={0.14}
+                envMapIntensity={1.4}
               />
             </mesh>
           </group>
