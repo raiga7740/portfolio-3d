@@ -30,7 +30,7 @@ export interface GalleryItem {
 
 export const PORTFOLIO_DATA = {
   brand: "RAIGA",
-  cvUrl: "/cv/CV_Gayuh_Raiguna.pdf",
+  cvUrl: "/cv/CV_Gayuh_Raiguna_Junior_Backend_Developer.pdf",
   navLinks: [
     { label: { id: "Proyek", en: "Projects" }, href: "#projects" },
     { label: { id: "Galeri", en: "Gallery" }, href: "#gallery" },

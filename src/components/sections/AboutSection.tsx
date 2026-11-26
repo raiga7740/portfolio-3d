@@ -85,7 +85,7 @@ export default function AboutSection() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <a
                 href={PORTFOLIO_DATA.cvUrl}
-                download="CV_Gayuh_Raiguna.pdf"
+                download="CV_Gayuh_Raiguna_Junior_Backend_Developer.pdf"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 px-6 py-3 text-sm font-semibold text-[#0F172A] shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
               >
                 <Download className="h-4 w-4 text-[#475569] transition-colors duration-500 dark:text-[#94A3B8]" />
