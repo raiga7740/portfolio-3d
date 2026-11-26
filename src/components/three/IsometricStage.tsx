@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
+import { type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Grid, RoundedBox } from "@react-three/drei";
 import {
   DEFAULT_ACCENT_COLOR,
@@ -224,6 +224,28 @@ function createBrushedMetalTexture(): THREE.CanvasTexture | null {
   return texture;
 }
 
+function isOverInteractiveHtml(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "a, button, input, textarea, select, [role='button'], [data-interactive]"
+      )
+    )
+  );
+}
+
+function isDragBlockedTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "a, button, input, textarea, select, [role='button'], [data-interactive], canvas"
+      )
+    )
+  );
+}
+
 export default function IsometricStage() {
   const stageGroupRef = useRef<THREE.Group>(null);
   const block1Ref = useRef<THREE.Group>(null);
@@ -255,11 +277,38 @@ export default function IsometricStage() {
 
   const discCarrierRef = useRef<THREE.Group>(null);
   const discSpinRef = useRef<THREE.Group>(null);
+  const coinGlowLightRef = useRef<THREE.PointLight>(null);
+
+  const cursorAuraRef = useRef<THREE.Mesh>(null);
+  const cursorAuraMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const cursorLightRef = useRef<THREE.PointLight>(null);
 
   const pointerRef = useRef({ x: 0, y: 0 });
+  const pointerActiveRef = useRef(false);
+  const cursorAuraAlphaRef = useRef(0);
   const progressRef = useRef(0);
   const hoverSpinRef = useRef(0);
   const themeBlendRef = useRef(0);
+  const coinHoveredRef = useRef(false);
+  const coinHoverBlendRef = useRef(0);
+  const coinBoostRef = useRef(0);
+  const coinJumpRef = useRef(0);
+
+  // Interactive 4-block state
+  const hoveredBlockRef = useRef<number | null>(null);
+  const blockHoverBlendRef = useRef<[number, number, number, number]>([0, 0, 0, 0]);
+  const blockPulseRef = useRef<[number, number, number, number]>([0, 0, 0, 0]);
+  const stageGlowPulseRef = useRef(0);
+
+  // Drag-to-rotate stage state
+  const pointerDownRef = useRef(false);
+  const isDraggingStageRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragLastXRef = useRef(0);
+  const dragMovedRef = useRef(false);
+  const dragRotOffsetRef = useRef(0);
+  const dragVelocityRef = useRef(0);
+  const returningToScrollRef = useRef(false);
 
   // Smoothed scalar choreography refs to keep transitions fluid across 60Hz and 120Hz displays
   const spreadRef = useRef(scrollState.blockSpread);
@@ -293,6 +342,10 @@ export default function IsometricStage() {
     hoverQuat: new THREE.Quaternion(),
     targetColor: new THREE.Color(DEFAULT_ACCENT_COLOR),
     currentAccentColor: new THREE.Color(DEFAULT_ACCENT_COLOR),
+    raycaster: new THREE.Raycaster(),
+    floorPlane: new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
+    pointerNdc: new THREE.Vector2(),
+    cursorHitVec: new THREE.Vector3(),
   });
 
   // Procedural textures stored in useMemo and disposed cleanly on unmount
@@ -354,17 +407,208 @@ export default function IsometricStage() {
     };
   }, [tubeGeometry]);
 
+  const syncCursor = useCallback(() => {
+    if (isDraggingStageRef.current) {
+      document.body.style.cursor = "grabbing";
+    } else if (coinHoveredRef.current || hoveredBlockRef.current !== null) {
+      document.body.style.cursor = "pointer";
+    } else {
+      document.body.style.cursor = "";
+    }
+  }, []);
+
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
       pointerRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointerRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      pointerActiveRef.current = true;
+
+      if (pointerDownRef.current) {
+        const dx = event.clientX - dragLastXRef.current;
+        const totalDx = Math.abs(event.clientX - dragStartXRef.current);
+        if (totalDx > 5 && !isDraggingStageRef.current) {
+          isDraggingStageRef.current = true;
+          dragMovedRef.current = true;
+          returningToScrollRef.current = false;
+          syncCursor();
+        }
+        if (isDraggingStageRef.current) {
+          const deltaRot = dx * 0.0065;
+          dragRotOffsetRef.current += deltaRot;
+          dragVelocityRef.current = deltaRot;
+        }
+        dragLastXRef.current = event.clientX;
+      }
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button === 0 && !isDragBlockedTarget(event.target)) {
+        pointerDownRef.current = true;
+        dragMovedRef.current = false;
+        dragStartXRef.current = event.clientX;
+        dragLastXRef.current = event.clientX;
+        dragVelocityRef.current = 0;
+      }
+    };
+
+    const handlePointerUp = () => {
+      if (pointerDownRef.current || isDraggingStageRef.current) {
+        pointerDownRef.current = false;
+        isDraggingStageRef.current = false;
+        syncCursor();
+      }
+    };
+
+    const handlePointerLeave = () => {
+      pointerActiveRef.current = false;
+    };
+
+    const handleScroll = () => {
+      if (
+        Math.abs(dragRotOffsetRef.current) > 0.001 ||
+        Math.abs(dragVelocityRef.current) > 0.0001
+      ) {
+        returningToScrollRef.current = true;
+        dragVelocityRef.current = 0;
+      }
     };
 
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    window.addEventListener("pointerup", handlePointerUp, { passive: true });
+    window.addEventListener("pointercancel", handlePointerUp, { passive: true });
+    document.documentElement.addEventListener(
+      "pointerleave",
+      handlePointerLeave,
+      { passive: true }
+    );
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+      document.documentElement.removeEventListener(
+        "pointerleave",
+        handlePointerLeave
+      );
+      window.removeEventListener("scroll", handleScroll);
+      coinHoveredRef.current = false;
+      hoveredBlockRef.current = null;
+      isDraggingStageRef.current = false;
+      document.body.style.cursor = "";
     };
+  }, [syncCursor]);
+
+  const handleCoinPointerOver = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+        if (coinHoveredRef.current) {
+          coinHoveredRef.current = false;
+          syncCursor();
+        }
+        return;
+      }
+      e.stopPropagation();
+      coinHoveredRef.current = true;
+      syncCursor();
+    },
+    [syncCursor]
+  );
+
+  const handleCoinPointerMove = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+        if (coinHoveredRef.current) {
+          coinHoveredRef.current = false;
+          syncCursor();
+        }
+        return;
+      }
+      e.stopPropagation();
+      if (!coinHoveredRef.current) {
+        coinHoveredRef.current = true;
+        syncCursor();
+      }
+    },
+    [syncCursor]
+  );
+
+  const handleCoinPointerOut = useCallback(() => {
+    coinHoveredRef.current = false;
+    syncCursor();
+  }, [syncCursor]);
+
+  const handleCoinClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    if (dragMovedRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+      return;
+    }
+    e.stopPropagation();
+    coinBoostRef.current = Math.min(coinBoostRef.current + 1.0, 2.2);
+    coinJumpRef.current = 1.0;
   }, []);
+
+  const handleBlockPointerOver = useCallback(
+    (index: number, e: ThreeEvent<PointerEvent>) => {
+      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+        if (hoveredBlockRef.current === index) {
+          hoveredBlockRef.current = null;
+          syncCursor();
+        }
+        return;
+      }
+      e.stopPropagation();
+      hoveredBlockRef.current = index;
+      syncCursor();
+    },
+    [syncCursor]
+  );
+
+  const handleBlockPointerMove = useCallback(
+    (index: number, e: ThreeEvent<PointerEvent>) => {
+      if (isDraggingStageRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+        if (hoveredBlockRef.current === index) {
+          hoveredBlockRef.current = null;
+          syncCursor();
+        }
+        return;
+      }
+      e.stopPropagation();
+      if (hoveredBlockRef.current !== index) {
+        hoveredBlockRef.current = index;
+        syncCursor();
+      }
+    },
+    [syncCursor]
+  );
+
+  const handleBlockPointerOut = useCallback(
+    (index: number) => {
+      if (hoveredBlockRef.current === index) {
+        hoveredBlockRef.current = null;
+        syncCursor();
+      }
+    },
+    [syncCursor]
+  );
+
+  const handleBlockClick = useCallback(
+    (index: number, e: ThreeEvent<MouseEvent>) => {
+      if (dragMovedRef.current || isOverInteractiveHtml(e.nativeEvent.target)) {
+        return;
+      }
+      e.stopPropagation();
+      blockPulseRef.current[index] = 1.0;
+      for (let j = 0; j < 4; j += 1) {
+        if (j !== index) {
+          blockPulseRef.current[j] = Math.max(blockPulseRef.current[j], 0.35);
+        }
+      }
+      stageGlowPulseRef.current = 1.0;
+    },
+    []
+  );
 
   useFrame((state, delta) => {
     const {
@@ -382,6 +626,10 @@ export default function IsometricStage() {
       hoverQuat,
       targetColor,
       currentAccentColor,
+      raycaster,
+      floorPlane,
+      pointerNdc,
+      cursorHitVec,
     } = scratchRef.current;
 
     const safeDelta = Math.min(delta, 0.1);
@@ -505,6 +753,21 @@ export default function IsometricStage() {
       );
     }
 
+    // Smoothly interpolate coin hover, boost energy, and parabolic jump arc
+    coinHoverBlendRef.current = THREE.MathUtils.lerp(
+      coinHoverBlendRef.current,
+      coinHoveredRef.current ? 1 : 0,
+      1 - Math.exp(-9 * safeDelta)
+    );
+    coinBoostRef.current *= Math.exp(-2.2 * safeDelta);
+    if (coinBoostRef.current < 0.001) {
+      coinBoostRef.current = 0;
+    }
+    coinJumpRef.current = Math.max(0, coinJumpRef.current - safeDelta * 1.8);
+    const coinHoverBlend = coinHoverBlendRef.current;
+    const coinBoost = coinBoostRef.current;
+    const jumpArc = Math.sin(coinJumpRef.current * Math.PI);
+
     if (discMatRef.current) {
       discMatRef.current.color.lerp(
         isDark ? DARK_COIN_COLOR : LIGHT_COIN_COLOR,
@@ -524,11 +787,44 @@ export default function IsometricStage() {
         isDark ? DARK_COIN_EMISSIVE : LIGHT_COIN_EMISSIVE,
         themeDamp
       );
+      const targetCoinEmissive =
+        (isDark ? 0.15 : 0.06) + coinHoverBlend * 0.35 + coinBoost * 0.45;
       discMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
         discMatRef.current.emissiveIntensity,
-        isDark ? 0.15 : 0.06,
-        themeDamp
+        targetCoinEmissive,
+        1 - Math.exp(-8 * safeDelta)
       );
+    }
+
+    if (coinGlowLightRef.current) {
+      coinGlowLightRef.current.intensity =
+        (coinHoverBlend * 0.9 + coinBoost * 1.4) *
+        THREE.MathUtils.lerp(0.8, 1.3, darkBlend);
+    }
+
+    // Update 4-block hover blends, tactile click spring pulses, and stage glow ripple
+    stageGlowPulseRef.current *= Math.exp(-3.2 * safeDelta);
+    if (stageGlowPulseRef.current < 0.001) {
+      stageGlowPulseRef.current = 0;
+    }
+    const stageGlowPulse = stageGlowPulseRef.current;
+    const blockHoverDamp = 1 - Math.exp(-9 * safeDelta);
+    const blockHoverBlends = blockHoverBlendRef.current;
+    const blockPulses = blockPulseRef.current;
+
+    for (let i = 0; i < 4; i += 1) {
+      blockHoverBlends[i] = THREE.MathUtils.lerp(
+        blockHoverBlends[i],
+        hoveredBlockRef.current === i ? 1 : 0,
+        blockHoverDamp
+      );
+      blockPulses[i] = Math.max(0, blockPulses[i] - safeDelta * 2.1);
+    }
+
+    if (blockMat3Ref.current) {
+      const b3Energy = blockHoverBlends[2] * 0.22 + blockPulses[2] * 0.35;
+      blockMat3Ref.current.emissive.copy(currentAccentColor);
+      blockMat3Ref.current.emissiveIntensity = b3Energy;
     }
 
     // Update radial floor glow opacity, emissive strips, and bounce point lights
@@ -547,30 +843,38 @@ export default function IsometricStage() {
       baseStripIntensity * (glowRef.current / 0.8) * (isHovered ? 1.25 : 1.0)
     );
 
-    const floorGlowMats = [
-      floorGlowMat1Ref.current,
-      floorGlowMat2Ref.current,
-      floorGlowMat4Ref.current,
+    const floorGlowTargets = [
+      { mat: floorGlowMat1Ref.current, idx: 0 },
+      { mat: floorGlowMat2Ref.current, idx: 1 },
+      { mat: floorGlowMat4Ref.current, idx: 3 },
     ];
-    for (let i = 0; i < floorGlowMats.length; i += 1) {
-      const mat = floorGlowMats[i];
+    for (let i = 0; i < floorGlowTargets.length; i += 1) {
+      const { mat, idx } = floorGlowTargets[i];
       if (mat) {
+        const boost =
+          blockHoverBlends[idx] * 0.22 +
+          blockPulses[idx] * 0.26 +
+          stageGlowPulse * 0.1;
         mat.color.copy(currentAccentColor);
-        mat.opacity = floorGlowOpacity;
+        mat.opacity = THREE.MathUtils.clamp(floorGlowOpacity + boost, 0.3, 0.96);
       }
     }
 
-    const stripMats = [
-      stripMat1Ref.current,
-      stripMat2Ref.current,
-      stripMat4Ref.current,
+    const stripTargets = [
+      { mat: stripMat1Ref.current, idx: 0 },
+      { mat: stripMat2Ref.current, idx: 1 },
+      { mat: stripMat4Ref.current, idx: 3 },
     ];
-    for (let i = 0; i < stripMats.length; i += 1) {
-      const mat = stripMats[i];
+    for (let i = 0; i < stripTargets.length; i += 1) {
+      const { mat, idx } = stripTargets[i];
       if (mat) {
+        const boost =
+          blockHoverBlends[idx] * 0.85 +
+          blockPulses[idx] * 1.1 +
+          stageGlowPulse * 0.35;
         mat.color.copy(currentAccentColor);
         mat.emissive.copy(currentAccentColor);
-        mat.emissiveIntensity = stripEmissiveIntensity;
+        mat.emissiveIntensity = stripEmissiveIntensity + boost;
       }
     }
 
@@ -582,7 +886,10 @@ export default function IsometricStage() {
       glowLight1Ref.current.color.copy(currentAccentColor);
       glowLight1Ref.current.intensity = THREE.MathUtils.lerp(
         glowLight1Ref.current.intensity,
-        targetGlowIntensity,
+        targetGlowIntensity +
+          blockHoverBlends[0] * 0.85 +
+          blockPulses[0] * 1.1 +
+          stageGlowPulse * 0.35,
         colorDamp
       );
     }
@@ -590,12 +897,15 @@ export default function IsometricStage() {
       glowLight2Ref.current.color.copy(currentAccentColor);
       glowLight2Ref.current.intensity = THREE.MathUtils.lerp(
         glowLight2Ref.current.intensity,
-        targetGlowIntensity,
+        targetGlowIntensity +
+          blockHoverBlends[1] * 0.85 +
+          blockPulses[1] * 1.1 +
+          stageGlowPulse * 0.35,
         colorDamp
       );
     }
 
-    // Apply tiered elevation, exploded spread, and staggered wave breathing across the 4 blocks
+    // Apply tiered elevation, exploded spread, hover lift, tactile bounce, and wave breathing across the 4 blocks
     const blockRefs = [block1Ref, block2Ref, block3Ref, block4Ref];
     for (let i = 0; i < blockRefs.length; i += 1) {
       const block = blockRefs[i].current;
@@ -611,14 +921,24 @@ export default function IsometricStage() {
         ? Math.sin(elapsed * 0.6 + cfg.wavePhase) * cfg.driftZ
         : 0;
 
+      const pulse = blockPulses[i];
+      const bounceY = -Math.sin(pulse * Math.PI * 2) * pulse * 0.22;
+
       const targetX = cfg.baseX + spreadRef.current * cfg.spreadX + driftX;
       const targetY =
-        cfg.baseY + elevationRef.current * cfg.elevationTier + waveY;
+        cfg.baseY +
+        elevationRef.current * cfg.elevationTier +
+        waveY +
+        blockHoverBlends[i] * 0.18 +
+        bounceY;
       const targetZ = cfg.baseZ + spreadRef.current * cfg.spreadZ + driftZ;
 
       block.position.x = THREE.MathUtils.lerp(block.position.x, targetX, damp);
       block.position.y = THREE.MathUtils.lerp(block.position.y, targetY, damp);
       block.position.z = THREE.MathUtils.lerp(block.position.z, targetZ, damp);
+      block.scale.setScalar(
+        1 + blockHoverBlends[i] * 0.025 + Math.max(0, bounceY) * 0.12
+      );
     }
 
     // Keep floor radial underglow planes pinned on the floor beneath Blocks 1, 2, and 4
@@ -645,7 +965,7 @@ export default function IsometricStage() {
     }
 
     // Kinetic loop: blend smoothly between track rolling (orbLift=0) and hovering orbit (orbLift=1)
-    const speedMultiplier = isHovered ? 1.25 : 1.0;
+    const speedMultiplier = (isHovered ? 1.25 : 1.0) * (1 + coinBoost * 2.4);
     const deltaProgress =
       0.065 * trackSpeedRef.current * speedMultiplier * safeDelta;
     progressRef.current = (progressRef.current + deltaProgress) % 1;
@@ -656,8 +976,9 @@ export default function IsometricStage() {
     trackPosVec.y += DISC_RADIUS + 0.04;
     hoverPosVec.set(0, 2.05 + Math.sin(elapsed * 1.6) * 0.14, 0);
     blendedPosVec.copy(trackPosVec).lerp(hoverPosVec, orbLiftRef.current);
+    blendedPosVec.y += coinHoverBlend * 0.24 + jumpArc * 0.65;
 
-    hoverSpinRef.current += safeDelta * 0.95;
+    hoverSpinRef.current += safeDelta * (0.95 + coinBoost * 3.8);
     const trackYaw = Math.atan2(tangentVec.x, tangentVec.z);
     trackEuler.set(0, trackYaw, 0);
     hoverEuler.set(0.28, hoverSpinRef.current, Math.PI * 0.38);
@@ -669,15 +990,38 @@ export default function IsometricStage() {
       discCarrierRef.current.quaternion
         .copy(trackQuat)
         .slerp(hoverQuat, orbLiftRef.current);
+      discCarrierRef.current.scale.setScalar(
+        1 + coinHoverBlend * 0.08 + jumpArc * 0.1
+      );
     }
 
     if (discSpinRef.current) {
       const distanceTraveled = deltaProgress * curveLength;
       discSpinRef.current.rotation.x +=
-        (distanceTraveled / DISC_RADIUS) * (1 - orbLiftRef.current);
+        (distanceTraveled / DISC_RADIUS + coinBoost * safeDelta * 4.5) *
+        (1 - orbLiftRef.current);
     }
 
-    // Stage offset (shift slightly right on Hero desktop for safe text negative space), rotation, and mobile scaling
+    // Stage offset (shift slightly right on Hero desktop for safe text negative space), drag rotation + auto-reset, and mobile scaling
+    if (!isDraggingStageRef.current) {
+      if (returningToScrollRef.current) {
+        dragRotOffsetRef.current = THREE.MathUtils.lerp(
+          dragRotOffsetRef.current,
+          0,
+          1 - Math.exp(-4.5 * safeDelta)
+        );
+        if (Math.abs(dragRotOffsetRef.current) < 0.002) {
+          dragRotOffsetRef.current = 0;
+          returningToScrollRef.current = false;
+        }
+      } else if (Math.abs(dragVelocityRef.current) > 0.0001) {
+        dragRotOffsetRef.current += dragVelocityRef.current;
+        dragVelocityRef.current *= Math.exp(-6 * safeDelta);
+      } else {
+        dragVelocityRef.current = 0;
+      }
+    }
+
     const heroOffsetX = isMobile
       ? 0
       : Math.max(0, 1 - scrollState.sectionIndex) * HERO_STAGE_OFFSET_X;
@@ -689,10 +1033,13 @@ export default function IsometricStage() {
         isMobile ? 0 : scrollState.stageOffset.z
       );
       stageGroupRef.current.position.lerp(desiredStagePosVec, damp);
+      const targetStageRotY =
+        (isMobile ? scrollState.stageRotY * 0.65 : scrollState.stageRotY) +
+        dragRotOffsetRef.current;
       stageGroupRef.current.rotation.y = THREE.MathUtils.lerp(
         stageGroupRef.current.rotation.y,
-        isMobile ? scrollState.stageRotY * 0.65 : scrollState.stageRotY,
-        damp
+        targetStageRotY,
+        isDraggingStageRef.current ? 1 - Math.exp(-16 * safeDelta) : damp
       );
       const targetScale = isMobile ? 0.65 : 1.0;
       const nextScale = THREE.MathUtils.lerp(
@@ -701,6 +1048,54 @@ export default function IsometricStage() {
         damp
       );
       stageGroupRef.current.scale.setScalar(nextScale);
+    }
+
+    // Cursor floor aura & light raycast onto world y = 0 plane
+    cursorAuraAlphaRef.current = THREE.MathUtils.lerp(
+      cursorAuraAlphaRef.current,
+      pointerActiveRef.current && !isMobile ? 1 : 0,
+      1 - Math.exp(-6 * safeDelta)
+    );
+    pointerNdc.set(pointerRef.current.x, pointerRef.current.y);
+    raycaster.setFromCamera(pointerNdc, state.camera);
+    if (raycaster.ray.intersectPlane(floorPlane, cursorHitVec)) {
+      const clampedX = THREE.MathUtils.clamp(cursorHitVec.x, -12, 12);
+      const clampedZ = THREE.MathUtils.clamp(cursorHitVec.z, -12, 12);
+      const auraLerp = 1 - Math.exp(-12 * safeDelta);
+      if (cursorAuraRef.current) {
+        cursorAuraRef.current.position.x = THREE.MathUtils.lerp(
+          cursorAuraRef.current.position.x,
+          clampedX,
+          auraLerp
+        );
+        cursorAuraRef.current.position.z = THREE.MathUtils.lerp(
+          cursorAuraRef.current.position.z,
+          clampedZ,
+          auraLerp
+        );
+      }
+      if (cursorLightRef.current) {
+        cursorLightRef.current.position.x = THREE.MathUtils.lerp(
+          cursorLightRef.current.position.x,
+          clampedX,
+          auraLerp
+        );
+        cursorLightRef.current.position.z = THREE.MathUtils.lerp(
+          cursorLightRef.current.position.z,
+          clampedZ,
+          auraLerp
+        );
+      }
+    }
+    if (cursorAuraMatRef.current) {
+      cursorAuraMatRef.current.color.copy(currentAccentColor);
+      cursorAuraMatRef.current.opacity =
+        cursorAuraAlphaRef.current * THREE.MathUtils.lerp(0.32, 0.52, darkBlend);
+    }
+    if (cursorLightRef.current) {
+      cursorLightRef.current.color.copy(currentAccentColor);
+      cursorLightRef.current.intensity =
+        cursorAuraAlphaRef.current * THREE.MathUtils.lerp(0.65, 1.35, darkBlend);
     }
 
     // Camera choreography + subtle cursor parallax (max ~2-3 degrees) + mobile framing
@@ -772,6 +1167,33 @@ export default function IsometricStage() {
         fadeDistance={22}
         fadeStrength={1.6}
         infiniteGrid
+      />
+
+      {/* Cursor-following floor aura and accent bounce light */}
+      {radialGlowTexture && (
+        <mesh
+          ref={cursorAuraRef}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 0.02, 0]}
+        >
+          <planeGeometry args={[3.4, 3.4]} />
+          <meshBasicMaterial
+            ref={cursorAuraMatRef}
+            map={radialGlowTexture}
+            color={LIGHT_ACCENT_COLOR}
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      <pointLight
+        ref={cursorLightRef}
+        position={[0, 0.55, 0]}
+        color={LIGHT_ACCENT_COLOR}
+        intensity={0}
+        distance={5}
+        decay={2}
       />
 
       {/* Scalable Isometric Architectural Stage */}
@@ -849,6 +1271,10 @@ export default function IsometricStage() {
             smoothness={6}
             castShadow
             receiveShadow
+            onPointerOver={(e) => handleBlockPointerOver(0, e)}
+            onPointerMove={(e) => handleBlockPointerMove(0, e)}
+            onPointerOut={() => handleBlockPointerOut(0)}
+            onClick={(e) => handleBlockClick(0, e)}
           >
             <meshPhysicalMaterial
               ref={blockMat1Ref}
@@ -891,6 +1317,10 @@ export default function IsometricStage() {
             smoothness={6}
             castShadow
             receiveShadow
+            onPointerOver={(e) => handleBlockPointerOver(1, e)}
+            onPointerMove={(e) => handleBlockPointerMove(1, e)}
+            onPointerOut={() => handleBlockPointerOut(1)}
+            onClick={(e) => handleBlockClick(1, e)}
           >
             <meshPhysicalMaterial
               ref={blockMat2Ref}
@@ -933,6 +1363,10 @@ export default function IsometricStage() {
             smoothness={6}
             castShadow
             receiveShadow
+            onPointerOver={(e) => handleBlockPointerOver(2, e)}
+            onPointerMove={(e) => handleBlockPointerMove(2, e)}
+            onPointerOut={() => handleBlockPointerOut(2)}
+            onClick={(e) => handleBlockClick(2, e)}
           >
             <meshPhysicalMaterial
               ref={blockMat3Ref}
@@ -956,6 +1390,10 @@ export default function IsometricStage() {
             smoothness={6}
             castShadow
             receiveShadow
+            onPointerOver={(e) => handleBlockPointerOver(3, e)}
+            onPointerMove={(e) => handleBlockPointerMove(3, e)}
+            onPointerOut={() => handleBlockPointerOut(3)}
+            onClick={(e) => handleBlockClick(3, e)}
           >
             <meshPhysicalMaterial
               ref={blockMat4Ref}
@@ -995,6 +1433,22 @@ export default function IsometricStage() {
 
         {/* Rolling / Hovering Brushed Champagne-Gold Metallic Disc */}
         <group ref={discCarrierRef}>
+          <pointLight
+            ref={coinGlowLightRef}
+            color="#F5D07A"
+            intensity={0}
+            distance={2.6}
+            decay={2}
+          />
+          <mesh
+            onPointerOver={handleCoinPointerOver}
+            onPointerMove={handleCoinPointerMove}
+            onPointerOut={handleCoinPointerOut}
+            onClick={handleCoinClick}
+          >
+            <sphereGeometry args={[DISC_RADIUS * 1.45, 16, 16]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
           <group ref={discSpinRef}>
             <mesh rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
               <cylinderGeometry args={[DISC_RADIUS, DISC_RADIUS, 0.075, 48]} />
