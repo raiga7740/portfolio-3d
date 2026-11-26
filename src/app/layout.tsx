@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Syne, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/context/ThemeContext";
 import "./globals.css";
 
 const syne = Syne({
@@ -39,9 +40,9 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="min-h-full bg-[#F8FAFC] font-sans text-[#0F172A] selection:bg-[#0F172A] selection:text-[#F8FAFC]"
+        className="min-h-full bg-[#F1F5F9] dark:bg-[#0B1120] font-sans text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-500 selection:bg-[#0F172A] selection:text-[#F8FAFC] dark:selection:bg-teal-400 dark:selection:text-slate-950"
       >
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

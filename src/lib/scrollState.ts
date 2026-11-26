@@ -20,6 +20,7 @@ export interface ScrollChoreographyState {
   orbLift: number;
   glowIntensity: number;
   hoveredProject: string | null;
+  isDark: boolean;
 }
 
 export const DEFAULT_ACCENT_COLOR = "#14B8A6";
@@ -44,6 +45,7 @@ export const INITIAL_SCROLL_STATE: ScrollChoreographyState = {
   orbLift: 0,
   glowIntensity: 0.8,
   hoveredProject: null,
+  isDark: false,
 };
 
 export const scrollState: ScrollChoreographyState = {
