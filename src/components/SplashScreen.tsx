@@ -10,7 +10,6 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const percentRef = useRef<HTMLSpanElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -39,9 +38,14 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         updateProgress(100);
+        gsap.set("[data-splash-loader]", { opacity: 0 });
+        gsap.set(
+          "[data-splash-logo], [data-splash-name], [data-splash-subtitle]",
+          { opacity: 1 }
+        );
         gsap.to(rootRef.current, {
           opacity: 0,
-          duration: 0.3,
+          duration: 0.35,
           ease: "power2.out",
           onComplete: () => {
             onCompleteRef.current?.();
@@ -53,50 +57,85 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       const counter = { value: 0 };
       const tl = gsap.timeline();
 
-      tl.from(
-        "[data-splash-logo], [data-splash-name], [data-splash-subtitle], [data-splash-loader]",
-        {
-          y: 16,
-          opacity: 0,
-          duration: 0.24,
-          stagger: 0.04,
-          ease: "power2.out",
-        },
+      // Stage 1: Smooth loading bar entrance and 0% -> 100% progress
+      tl.fromTo(
+        "[data-splash-loader]",
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" },
         0
       )
         .to(
           counter,
           {
             value: 100,
-            duration: 1.4,
-            ease: "power2.inOut",
+            duration: 1.05,
+            ease: "power3.inOut",
             onUpdate: () => {
               updateProgress(counter.value);
             },
           },
-          0.15
+          0.05
         )
+        // Stage 2: Loader recedes smoothly as RAIGA logo and name pop up
         .to(
-          contentRef.current,
+          "[data-splash-loader]",
           {
-            y: -14,
             opacity: 0,
-            duration: 0.2,
-            ease: "power2.in",
+            y: -8,
+            scale: 0.96,
+            duration: 0.28,
+            ease: "power2.inOut",
           },
-          1.65
+          1.12
+        )
+        .fromTo(
+          "[data-splash-logo]",
+          { opacity: 0, scale: 0.65, y: 18 },
+          {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            duration: 0.45,
+            ease: "back.out(1.7)",
+          },
+          1.2
+        )
+        .fromTo(
+          "[data-splash-name], [data-splash-subtitle]",
+          { opacity: 0, y: 14, scale: 0.94 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.42,
+            stagger: 0.07,
+            ease: "power3.out",
+          },
+          1.3
+        )
+        // Stage 3: Smooth exit reveal into the portfolio
+        .to(
+          "[data-splash-brand]",
+          {
+            opacity: 0,
+            y: -14,
+            scale: 1.03,
+            duration: 0.32,
+            ease: "power3.inOut",
+          },
+          1.95
         )
         .to(
           rootRef.current,
           {
             opacity: 0,
-            duration: 0.25,
-            ease: "power2.inOut",
+            duration: 0.4,
+            ease: "power3.inOut",
             onComplete: () => {
               onCompleteRef.current?.();
             },
           },
-          1.75
+          2.05
         );
     }, rootRef);
 
@@ -120,32 +159,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         className="pointer-events-none absolute bottom-[-120px] left-[8%] h-[380px] w-[380px] rounded-full bg-sky-100/50 blur-[120px] transition-colors duration-500 dark:bg-slate-900/50"
       />
 
-      <div
-        ref={contentRef}
-        className="relative z-10 flex flex-col items-center px-6 text-center"
-      >
+      <div className="relative z-10 grid place-items-center px-6">
+        {/* Stage 1: Centered Loading Bar */}
         <div
-          data-splash-logo
-          className="mb-4 flex items-center justify-center text-[#0F172A] dark:text-[#F8FAFC]"
+          data-splash-loader
+          className="w-64 sm:w-80 [grid-area:1/1] will-change-transform"
         >
-          <RaigaLogo size={56} showWordmark={false} />
-        </div>
-
-        <h2
-          data-splash-name
-          className="font-display text-3xl font-bold uppercase tracking-[0.22em] sm:text-4xl"
-        >
-          RAIGA
-        </h2>
-
-        <p
-          data-splash-subtitle
-          className="mt-2 font-mono text-[11px] uppercase tracking-[0.24em] text-[#475569] dark:text-[#94A3B8]"
-        >
-          Full-Stack Web Developer
-        </p>
-
-        <div data-splash-loader className="mt-8 w-64 sm:w-80">
           <div className="mb-2.5 flex items-center justify-between font-mono text-xs">
             <span className="uppercase tracking-[0.2em] text-[#475569] dark:text-[#94A3B8]">
               Loading
@@ -179,8 +198,34 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             </div>
           </div>
         </div>
+
+        {/* Stage 2: Centered Logo & Name Popup */}
+        <div
+          data-splash-brand
+          className="flex flex-col items-center text-center [grid-area:1/1] will-change-transform"
+        >
+          <div
+            data-splash-logo
+            className="mb-4 flex items-center justify-center text-[#0F172A] opacity-0 dark:text-[#F8FAFC]"
+          >
+            <RaigaLogo size={60} showWordmark={false} />
+          </div>
+
+          <h2
+            data-splash-name
+            className="font-display text-3xl font-bold uppercase tracking-[0.22em] opacity-0 sm:text-4xl"
+          >
+            RAIGA
+          </h2>
+
+          <p
+            data-splash-subtitle
+            className="mt-2 font-mono text-[11px] uppercase tracking-[0.24em] text-[#475569] opacity-0 dark:text-[#94A3B8]"
+          >
+            Full-Stack Web Developer
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-
