@@ -58,37 +58,46 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         {
           y: 16,
           opacity: 0,
-          duration: 0.45,
-          stagger: 0.08,
+          duration: 0.24,
+          stagger: 0.04,
           ease: "power2.out",
-        }
+        },
+        0
       )
-        .to(counter, {
-          value: 100,
-          duration: 1.45,
-          ease: "power2.inOut",
-          onUpdate: () => {
-            updateProgress(counter.value);
+        .to(
+          counter,
+          {
+            value: 100,
+            duration: 1.4,
+            ease: "power2.inOut",
+            onUpdate: () => {
+              updateProgress(counter.value);
+            },
           },
-        })
+          0.15
+        )
         .to(
           contentRef.current,
           {
             y: -14,
             opacity: 0,
-            duration: 0.35,
+            duration: 0.2,
             ease: "power2.in",
           },
-          "+=0.2"
+          1.65
         )
-        .to(rootRef.current, {
-          opacity: 0,
-          duration: 0.45,
-          ease: "power2.inOut",
-          onComplete: () => {
-            onCompleteRef.current?.();
+        .to(
+          rootRef.current,
+          {
+            opacity: 0,
+            duration: 0.25,
+            ease: "power2.inOut",
+            onComplete: () => {
+              onCompleteRef.current?.();
+            },
           },
-        });
+          1.75
+        );
     }, rootRef);
 
     return () => {
