@@ -27,7 +27,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         const rounded = Math.round(clamped);
 
         if (barRef.current) {
-          barRef.current.style.transform = `scaleX(${clamped / 100})`;
+          barRef.current.style.width = `${clamped}%`;
         }
         if (percentRef.current) {
           percentRef.current.textContent = `${rounded}%`;
@@ -156,12 +156,18 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             aria-valuemax={100}
             aria-valuenow={0}
             aria-label="Loading portfolio"
-            className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/90 dark:bg-slate-800/90"
+            className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200/90 dark:bg-slate-800/90"
           >
             <div
               ref={barRef}
-              className="h-full w-full origin-left scale-x-0 rounded-full bg-gradient-to-r from-[#0F172A] via-teal-600 to-teal-500 dark:from-teal-500 dark:to-teal-300"
-            />
+              style={{ width: "0%" }}
+              className="relative h-full overflow-hidden rounded-full bg-gradient-to-r from-[#0F172A] via-teal-600 to-teal-400 shadow-[0_0_12px_rgba(20,184,166,0.55)] dark:from-teal-500 dark:via-teal-400 dark:to-teal-200"
+            >
+              <span
+                aria-hidden="true"
+                className="animate-splash-shimmer pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/55 to-transparent"
+              />
+            </div>
           </div>
         </div>
       </div>
