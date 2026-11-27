@@ -8,6 +8,8 @@ interface SplashScreenProps {
   onComplete?: () => void;
 }
 
+const TOTAL_DURATION = 4;
+
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -20,6 +22,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   }, [onComplete]);
 
   useEffect(() => {
+    let rafId = 0;
+
     const ctx = gsap.context(() => {
       const updateProgress = (rawValue: number) => {
         const clamped = Math.max(0, Math.min(100, rawValue));
@@ -36,31 +40,17 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         }
       };
 
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        updateProgress(100);
-        gsap.set("[data-splash-loader]", { opacity: 0 });
-        gsap.set(
-          "[data-splash-logo], [data-splash-name], [data-splash-subtitle]",
-          { opacity: 1 }
-        );
-        gsap.to(rootRef.current, {
-          opacity: 0,
-          duration: 0.35,
-          ease: "power2.out",
-          onComplete: () => {
-            onCompleteRef.current?.();
-          },
-        });
-        return;
-      }
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
 
       const counter = { value: 0 };
-      const tl = gsap.timeline();
+      const tl = gsap.timeline({ paused: true });
 
       // Stage 1: Smooth loading bar entrance and 0% -> 100% progress
       tl.fromTo(
         "[data-splash-loader]",
-        { opacity: 0, y: 10 },
+        { opacity: 0, y: prefersReducedMotion ? 0 : 10 },
         { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" },
         0
       )
@@ -81,8 +71,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           "[data-splash-loader]",
           {
             opacity: 0,
-            y: -8,
-            scale: 0.96,
+            y: prefersReducedMotion ? 0 : -8,
+            scale: prefersReducedMotion ? 1 : 0.96,
             duration: 0.35,
             ease: "power2.inOut",
           },
@@ -90,19 +80,27 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         )
         .fromTo(
           "[data-splash-logo]",
-          { opacity: 0, scale: 0.65, y: 18 },
+          {
+            opacity: 0,
+            scale: prefersReducedMotion ? 1 : 0.65,
+            y: prefersReducedMotion ? 0 : 18,
+          },
           {
             opacity: 1,
             scale: 1,
             y: 0,
             duration: 0.6,
-            ease: "back.out(1.7)",
+            ease: prefersReducedMotion ? "power2.out" : "back.out(1.7)",
           },
           2.15
         )
         .fromTo(
           "[data-splash-name], [data-splash-subtitle]",
-          { opacity: 0, y: 14, scale: 0.94 },
+          {
+            opacity: 0,
+            y: prefersReducedMotion ? 0 : 14,
+            scale: prefersReducedMotion ? 1 : 0.94,
+          },
           {
             opacity: 1,
             y: 0,
@@ -118,8 +116,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           "[data-splash-brand]",
           {
             opacity: 0,
-            y: -14,
-            scale: 1.03,
+            y: prefersReducedMotion ? 0 : -14,
+            scale: prefersReducedMotion ? 1 : 1.03,
             duration: 0.45,
             ease: "power3.inOut",
           },
@@ -131,15 +129,46 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             opacity: 0,
             duration: 0.55,
             ease: "power3.inOut",
-            onComplete: () => {
-              onCompleteRef.current?.();
-            },
           },
           3.45
         );
+
+      tl.time(0);
+
+      let lastTime: number | null = null;
+      let elapsed = 0;
+      let completed = false;
+
+      const tick = (now: number) => {
+        if (lastTime === null) {
+          lastTime = now;
+          rafId = window.requestAnimationFrame(tick);
+          return;
+        }
+
+        // Clamp frame delta to max 50ms so main-thread WebGL init spikes never skip the animation
+        const dt = Math.min(Math.max((now - lastTime) / 1000, 0), 0.05);
+        lastTime = now;
+        elapsed = Math.min(elapsed + dt, TOTAL_DURATION);
+
+        tl.time(elapsed);
+
+        if (elapsed >= TOTAL_DURATION) {
+          if (!completed) {
+            completed = true;
+            onCompleteRef.current?.();
+          }
+          return;
+        }
+
+        rafId = window.requestAnimationFrame(tick);
+      };
+
+      rafId = window.requestAnimationFrame(tick);
     }, rootRef);
 
     return () => {
+      window.cancelAnimationFrame(rafId);
       ctx.revert();
     };
   }, []);
