@@ -61,20 +61,20 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       tl.fromTo(
         "[data-splash-loader]",
         { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" },
         0
       )
         .to(
           counter,
           {
             value: 100,
-            duration: 1.05,
+            duration: 1.85,
             ease: "power3.inOut",
             onUpdate: () => {
               updateProgress(counter.value);
             },
           },
-          0.05
+          0.1
         )
         // Stage 2: Loader recedes smoothly as RAIGA logo and name pop up
         .to(
@@ -83,10 +83,10 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             opacity: 0,
             y: -8,
             scale: 0.96,
-            duration: 0.28,
+            duration: 0.35,
             ease: "power2.inOut",
           },
-          1.12
+          2.0
         )
         .fromTo(
           "[data-splash-logo]",
@@ -95,10 +95,10 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             opacity: 1,
             scale: 1,
             y: 0,
-            duration: 0.45,
+            duration: 0.6,
             ease: "back.out(1.7)",
           },
-          1.2
+          2.15
         )
         .fromTo(
           "[data-splash-name], [data-splash-subtitle]",
@@ -107,11 +107,11 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.42,
-            stagger: 0.07,
+            duration: 0.55,
+            stagger: 0.1,
             ease: "power3.out",
           },
-          1.3
+          2.3
         )
         // Stage 3: Smooth exit reveal into the portfolio
         .to(
@@ -120,22 +120,22 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             opacity: 0,
             y: -14,
             scale: 1.03,
-            duration: 0.32,
+            duration: 0.45,
             ease: "power3.inOut",
           },
-          1.95
+          3.3
         )
         .to(
           rootRef.current,
           {
             opacity: 0,
-            duration: 0.4,
+            duration: 0.55,
             ease: "power3.inOut",
             onComplete: () => {
               onCompleteRef.current?.();
             },
           },
-          2.05
+          3.45
         );
     }, rootRef);
 
