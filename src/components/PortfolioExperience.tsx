@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -10,6 +10,7 @@ import {
   scrollState,
 } from "@/lib/scrollState";
 import { LanguageProvider } from "@/context/LanguageContext";
+import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import ProjectsSection from "@/components/sections/ProjectsSection";
@@ -22,6 +23,22 @@ gsap.registerPlugin(ScrollTrigger);
 export default function PortfolioExperience() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
+  const [isSplashDone, setIsSplashDone] = useState(false);
+
+  useEffect(() => {
+    if (!isSplashDone) {
+      document.body.style.overflow = "hidden";
+      lenisRef.current?.stop();
+    } else {
+      document.body.style.overflow = "";
+      lenisRef.current?.start();
+      ScrollTrigger.refresh();
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSplashDone]);
 
   useEffect(() => {
     // Reset scroll choreography to hero defaults on mount
@@ -297,6 +314,9 @@ export default function PortfolioExperience() {
 
   return (
     <LanguageProvider>
+      {!isSplashDone && (
+        <SplashScreen onComplete={() => setIsSplashDone(true)} />
+      )}
       <div ref={containerRef} className="relative z-10 pointer-events-none">
         <Navbar onNavigate={handleNavigate} />
         <main>
